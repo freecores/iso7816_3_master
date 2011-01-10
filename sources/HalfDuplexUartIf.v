@@ -30,7 +30,6 @@ module HalfDuplexUartIf(
     input nCsStatusOut,
     input serialIn,
 	 output serialOut,
-	 output isTx,
 	 output comClk
     );
 //parameters to override
@@ -57,7 +56,7 @@ parameter DIVIDER_WIDTH = 1;
 	wire rxRun;
 	wire rxStartBit;
 	wire txFull;
-	//wire isTx;
+	wire isTx;
    
    wire rxFlagsSet = dataOutReadyFlag | overrunErrorFlag | frameErrorFlag;
    reg bufferFull;
@@ -119,6 +118,7 @@ end
 		.isTx(isTx), 
 		.serialIn(serialIn),
 		.serialOut(serialOut),
+		.comClk(comClk),
 		.txData(txData), 
 		.clocksPerBit(clocksPerBit), 
 		.stopBit2(stopBit2), 

@@ -6,7 +6,7 @@
 //
 // Create Date:   21:02:24 09/02/2010
 // Design Name:   RxCore
-// Module Name:   D:/Hardware/Uart/tb_RxCore.v
+// Module Name:   tb_RxCore.v
 // Project Name:  Uart
 // Target Device:  
 // Tool versions:  

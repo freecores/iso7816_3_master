@@ -6,7 +6,7 @@
 //
 // Create Date:   22:53:00 08/29/2010
 // Design Name:   TxCore
-// Module Name:   D:/Hardware/Uart/tb_TxCore.v
+// Module Name:   tb_TxCore.v
 // Project Name:  Uart
 // Target Device:  
 // Tool versions:  

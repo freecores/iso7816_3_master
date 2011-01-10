@@ -6,7 +6,7 @@
 //
 // Create Date:   22:45:51 10/31/2010
 // Design Name:   HalfDuplexUartIf
-// Module Name:   /home/seb/dev/hardware/Uart/tb_HalfDuplexUartIf.v
+// Module Name:   tb_HalfDuplexUartIf.v
 // Project Name:  Uart
 // Target Device:  
 // Tool versions:  
