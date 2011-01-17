@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`default_nettype none
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: Sebastien Riou
@@ -19,31 +20,31 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module BasicHalfDuplexUart(
-    output [7:0] rxData,
-    output overrunErrorFlag,	//new data has been received before dataOut was read
-    output dataOutReadyFlag,	//new data available
-    output frameErrorFlag,		//bad parity or bad stop bits
-    output txRun,					//tx is started
-    output endOfRx,           //one cycle pulse: 1 during last cycle of last stop bit of rx
-    output rxRun,					//rx is definitely started, one of the three flag will be set
-    output rxStartBit,			//rx is started, but we don't know yet if real rx or just a glitch
-    output txFull,
-    output isTx,              //1 only when tx is ongoing. Indicates the direction of the com line.
+    output wire [7:0] rxData,
+    output wire overrunErrorFlag,	//new data has been received before dataOut was read
+    output wire dataOutReadyFlag,	//new data available
+    output wire frameErrorFlag,		//bad parity or bad stop bits
+    output wire txRun,					//tx is started
+    output wire endOfRx,           //one cycle pulse: 1 during last cycle of last stop bit of rx
+    output wire rxRun,					//rx is definitely started, one of the three flag will be set
+    output wire rxStartBit,			//rx is started, but we don't know yet if real rx or just a glitch
+    output wire txFull,
+    output wire isTx,              //1 only when tx is ongoing. Indicates the direction of the com line.
     
-	 input serialIn,				//signals to merged into a inout signal according to "isTx"
-	 output serialOut,
-	 output comClk,
+	 input wire serialIn,				//signals to merged into a inout signal according to "isTx"
+	 output wire serialOut,
+	 output wire comClk,
 	 
-    input [DIVIDER_WIDTH-1:0] clkPerCycle,
-	 input [7:0] txData,
-	 input [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit,			
-	 input stopBit2,//0: 1 stop bit, 1: 2 stop bits
-	 input oddParity, //if 1, parity bit is such that data+parity have an odd number of 1
-    input msbFirst,  //if 1, bits order is: startBit, b7, b6, b5...b0, parity
-	 input startTx,
-	 input ackFlags,
-	 input clk,
-    input nReset
+    input wire [DIVIDER_WIDTH-1:0] clkPerCycle,
+	 input wire [7:0] txData,
+	 input wire [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit,			
+	 input wire stopBit2,//0: 1 stop bit, 1: 2 stop bits
+	 input wire oddParity, //if 1, parity bit is such that data+parity have an odd number of 1
+    input wire msbFirst,  //if 1, bits order is: startBit, b7, b6, b5...b0, parity
+	 input wire startTx,
+	 input wire ackFlags,
+	 input wire clk,
+    input wire nReset
     );
 
 //parameters to override

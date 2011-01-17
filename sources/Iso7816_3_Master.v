@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`default_nettype none
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: 
@@ -19,27 +20,27 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module Iso7816_3_Master(
-    input nReset,
-    input clk,
-	 input [15:0] clkPerCycle,//not supported yet
-	 input startActivation,//Starts activation sequence
-	 input startDeactivation,//Starts deactivation sequence
-    input [7:0] dataIn,
-    input nWeDataIn,
-	 input [12:0] cyclePerEtu,
-    output [7:0] dataOut,
-    input nCsDataOut,
-    output [7:0] statusOut,
-    input nCsStatusOut,
+    input wire nReset,
+    input wire clk,
+	 input wire [15:0] clkPerCycle,//not supported yet
+	 input wire startActivation,//Starts activation sequence
+	 input wire startDeactivation,//Starts deactivation sequence
+    input wire [7:0] dataIn,
+    input wire nWeDataIn,
+	 input wire [12:0] cyclePerEtu,
+    output wire [7:0] dataOut,
+    input wire nCsDataOut,
+    output wire [7:0] statusOut,
+    input wire nCsStatusOut,
 	 output reg isActivated,//set to high by activation sequence, set to low by deactivation sequence
-	 output useIndirectConvention,
-	 output tsError,//high if TS character is wrong
-	 output tsReceived,
-	 output atrIsEarly,//high if TS received before 400 cycles after reset release
-	 output atrIsLate,//high if TS is still not received after 40000 cycles after reset release
+	 output wire useIndirectConvention,
+	 output wire tsError,//high if TS character is wrong
+	 output wire tsReceived,
+	 output wire atrIsEarly,//high if TS received before 400 cycles after reset release
+	 output wire atrIsLate,//high if TS is still not received after 40000 cycles after reset release
 	 //ISO7816 signals
-    inout isoSio,
-	 output isoClk,
+    inout wire isoSio,
+	 output wire isoClk,
 	 output reg isoReset,
 	 output reg isoVdd
     );
@@ -47,8 +48,9 @@ module Iso7816_3_Master(
 wire txRun,txPending, rxRun, rxStartBit, isTx, overrunErrorFlag, frameErrorFlag, bufferFull;
 assign {txRun, txPending, rxRun, rxStartBit, isTx, overrunErrorFlag, frameErrorFlag, bufferFull} = statusOut;
 
-	assign isoSio = isTx ? serialOut : 1'bz;
-	pullup(isoSio);
+wire serialOut;
+assign isoSio = isTx ? serialOut : 1'bz;
+pullup(isoSio);
 wire comClk;
 
 	HalfDuplexUartIf uart (

@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`default_nettype none
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: Sebastien Riou
@@ -19,20 +20,20 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module TxCore(
-    output comClk,
-    output serialOut,
-    output run,
-    output full,
-    output stopBits, //1 during stop bits
-    input [7:0] dataIn,
-    input [DIVIDER_WIDTH-1:0] clkPerCycle,
-	 input [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit,			
-	 input loadDataIn,   //evaluated only when full=0, when full goes to one, dataIn has been read
-    input stopBit2,//0: 1 stop bit, 1: 2 stop bits
-    input oddParity, //if 1, parity bit is such that data+parity have an odd number of 1
-    input msbFirst,  //if 1, bits will be send in the order startBit, b7, b6, b5...b0, parity
-	 input clk,
-    input nReset
+    output wire comClk,
+    output wire serialOut,
+    output wire run,
+    output wire full,
+    output wire stopBits, //1 during stop bits
+    input wire [7:0] dataIn,
+    input wire [DIVIDER_WIDTH-1:0] clkPerCycle,
+	 input wire [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit,			
+	 input wire loadDataIn,   //evaluated only when full=0, when full goes to one, dataIn has been read
+    input wire stopBit2,//0: 1 stop bit, 1: 2 stop bits
+    input wire oddParity, //if 1, parity bit is such that data+parity have an odd number of 1
+    input wire msbFirst,  //if 1, bits will be send in the order startBit, b7, b6, b5...b0, parity
+	 input wire clk,
+    input wire nReset
     );
 
 //parameters to override

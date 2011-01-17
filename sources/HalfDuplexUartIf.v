@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`default_nettype none
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: 
@@ -19,18 +20,18 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module HalfDuplexUartIf(
-    input nReset,
-    input clk,
-    input [DIVIDER_WIDTH-1:0] clkPerCycle,
-	 input [7:0] dataIn,
-    input nWeDataIn,
-    output [7:0] dataOut,
-    input nCsDataOut,
-    output [7:0] statusOut,
-    input nCsStatusOut,
-    input serialIn,
-	 output serialOut,
-	 output comClk
+    input wire nReset,
+    input wire clk,
+    input wire [DIVIDER_WIDTH-1:0] clkPerCycle,
+	 input wire [7:0] dataIn,
+    input wire nWeDataIn,
+    output wire [7:0] dataOut,
+    input wire nCsDataOut,
+    output wire [7:0] statusOut,
+    input wire nCsStatusOut,
+    input wire serialIn,
+	 output wire serialOut,
+	 output wire comClk
     );
 //parameters to override
 parameter DIVIDER_WIDTH = 1;

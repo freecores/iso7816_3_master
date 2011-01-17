@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`default_nettype none
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: Sebastien Riou
@@ -25,22 +26,22 @@ module RxCore(
    output reg frameErrorFlag,		//bad parity or bad stop bits
    output reg endOfRx,				//one cycle pulse: 1 during last cycle of last stop bit
    output reg run,					//rx is definitely started, one of the three flag will be set
-   output startBit,				//rx is started, but we don't know yet if real rx or just a glitch
-	input [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit,			
-	input stopBit2,//0: 1 stop bit, 1: 2 stop bits
-	input oddParity, //if 1, parity bit is such that data+parity have an odd number of 1
-   input msbFirst,  //if 1, bits order is: startBit, b7, b6, b5...b0, parity
-	input ackFlags,
-	input serialIn,
-	input clk,
-   input nReset,
+   output wire startBit,				//rx is started, but we don't know yet if real rx or just a glitch
+	input wire [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit,			
+	input wire stopBit2,//0: 1 stop bit, 1: 2 stop bits
+	input wire oddParity, //if 1, parity bit is such that data+parity have an odd number of 1
+   input wire msbFirst,  //if 1, bits order is: startBit, b7, b6, b5...b0, parity
+	input wire ackFlags,
+	input wire serialIn,
+	input wire clk,
+   input wire nReset,
 	//to connect to an instance of Counter.v (see RxCoreSelfContained.v for example)
 	output reg [CLOCK_PER_BIT_WIDTH-1:0] bitClocksCounterCompare,
 	output reg bitClocksCounterInc,
 	output reg bitClocksCounterClear,
-	output bitClocksCounterInitVal,
-   input bitClocksCounterEarlyMatch,
-	input bitClocksCounterMatch
+	output wire bitClocksCounterInitVal,
+   input wire bitClocksCounterEarlyMatch,
+	input wire bitClocksCounterMatch
     );
 
 //parameters to override

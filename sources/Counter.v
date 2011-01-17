@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`default_nettype none
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: Sebastien Riou
@@ -20,16 +21,16 @@
 //////////////////////////////////////////////////////////////////////////////////
 module Counter(
     output reg [WIDTH-1:0] counter,
-    output earlyMatch,
+    output wire earlyMatch,
 	 output reg match,
-	 output dividedClk,
-	 input [DIVIDER_WIDTH-1:0] divider,	// clock divide factor
-	 input [WIDTH-1:0] compare,
-	 input inc,
-	 input clear,
-	 input [WIDTH_INIT-1:0] initVal,
-	 input clk,
-    input nReset
+	 output wire dividedClk,
+	 input wire [DIVIDER_WIDTH-1:0] divider,	// clock divide factor
+	 input wire [WIDTH-1:0] compare,
+	 input wire inc,
+	 input wire clear,
+	 input wire [WIDTH_INIT-1:0] initVal,
+	 input wire clk,
+    input wire nReset
     );
 
 //parameters to override
