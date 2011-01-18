@@ -94,11 +94,10 @@ ClkDivider #(.DIVIDER_WIDTH(DIVIDER_WIDTH))
 		.dividedClk(earlyComClk)
 		);
 */	
-
+wire stopBit;
 // Instantiate the module
 RxCoreSelfContained #(
-		.DIVIDER_WIDTH(DIVIDER_WIDTH),
-		.PARITY_POLARITY(PARITY_POLARITY))
+		.DIVIDER_WIDTH(DIVIDER_WIDTH))
 	rxCore (
     .dataOut(rxData), 
     .overrunErrorFlag(overrunErrorFlag), 
@@ -107,7 +106,8 @@ RxCoreSelfContained #(
     .endOfRx(endOfRx),
     .run(rxRun), 
     .startBit(rxStartBit), 
-	 .clkPerCycle(clkPerCycle),
+	 .stopBit(stopBit),
+    .clkPerCycle(clkPerCycle),
     .clocksPerBit(clocksPerBit), 
     .stopBit2(stopBit2), 
     .oddParity(oddParity),

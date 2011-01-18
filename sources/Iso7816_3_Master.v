@@ -71,50 +71,50 @@ wire comClk;
 	reg isoClkEn;
 	assign isoClk = isoClkEn ? comClk : 1'b0;
 	
-	reg [16:0] resetCnt;
-	reg waitTs;
-	assign tsReceived = ~waitTs;
-	reg [7:0] ts;
-	assign atrIsEarly = ~waitTs & (resetCnt<(16'h100+16'd400));
-	assign atrIsLate = resetCnt>(16'h100+16'd40000);
-	assign useIndirectConvention = ~waitTs & (ts==8'h3F);
-	assign tsError = ~waitTs & (ts!=8'h3B) & ~useIndirectConvention;
-	always @(posedge comClk, negedge nReset) begin
-		if(~nReset) begin
-			isoClkEn <= 1'b0;
-			resetCnt<=16'b0;
-			waitTs<=1'b1;
-			isoReset <= 1'b0;
+reg [16:0] resetCnt;
+reg waitTs;
+assign tsReceived = ~waitTs;
+reg [7:0] ts;
+assign atrIsEarly = ~waitTs & (resetCnt<(16'h100+16'd400));
+assign atrIsLate = resetCnt>(16'h100+16'd40000);
+assign useIndirectConvention = ~waitTs & (ts==8'h3F);
+assign tsError = ~waitTs & (ts!=8'h3B) & ~useIndirectConvention;
+always @(posedge comClk, negedge nReset) begin
+	if(~nReset) begin
+		isoClkEn <= 1'b0;
+		resetCnt<=16'b0;
+		waitTs<=1'b1;
+		isoReset <= 1'b0;
+		isoVdd <= 1'b0;
+		isActivated <= 1'b0;
+	end else if(isActivated) begin
+		if(waitTs) begin
+			if(statusOut[0]) begin
+				waitTs<=1'b0;
+				ts<=dataOut;
+			end
+			resetCnt<=resetCnt+1;
+		end
+		if(startDeactivation) begin
 			isoVdd <= 1'b0;
+			isoClkEn <= 1'b0;
+			isoReset <= 1'b0;
+			resetCnt<=16'b0;
 			isActivated <= 1'b0;
-		end else if(isActivated) begin
-			if(waitTs) begin
-				if(statusOut[0]) begin
-					waitTs<=1'b0;
-					ts<=dataOut;
-				end
-				resetCnt<=resetCnt+1;
-			end
-			if(startDeactivation) begin
-				isoVdd <= 1'b0;
-				isoClkEn <= 1'b0;
-				isoReset <= 1'b0;
-				resetCnt<=16'b0;
-				isActivated <= 1'b0;
-			end
+		end
+	end else begin
+		if(startActivation) begin
+			waitTs <= 1'b1;
+			isoVdd <= 1'b1;
+			isoClkEn <= 1'b1;
+			if(16'h100 == resetCnt) begin
+				isActivated <=1'b1;
+				isoReset <=1'b1;
+			end else
+				resetCnt<=resetCnt + 1;
 		end else begin
-			if(startActivation) begin
-				waitTs <= 1'b1;
-				isoVdd <= 1'b1;
-				isoClkEn <= 1'b1;
-				if(16'h100 == resetCnt) begin
-					isActivated <=1'b1;
-					isoReset <=1'b1;
-				end else
-					resetCnt<=resetCnt + 1;
-			end else begin
-				resetCnt<=16'b0;
-			end
+			resetCnt<=16'b0;
 		end
 	end
+end
 endmodule

@@ -146,6 +146,7 @@ parameter CLK_PERIOD = 10;//should be %2
 	wire frameErrorFlag;
 	wire run;
 	wire startBit;
+	wire stopBit;
 
 
 reg serialIn;
@@ -162,7 +163,8 @@ assign #1 realSerialIn = serialIn;
 		.endOfRx(endOfRx),
       .run(run), 
 		.startBit(startBit), 
-		.clocksPerBit(clocksPerBit),
+		.stopBit(stopBit),
+      .clocksPerBit(clocksPerBit),
 		.stopBit2(stopBit2),
 		.ackFlags(ackFlags), 
 		.serialIn(realSerialIn),

@@ -27,6 +27,7 @@ module RxCoreSelfContained(
     output wire endOfRx,				//one cycle pulse: 1 during last cycle of last stop bit
     output wire run,					//rx is definitely started, one of the three flag will be set
     output wire startBit,				//rx is started, but we don't know yet if real rx or just a glitch
+	 output wire stopBit,				//rx is over but still in stop bits
 	 input wire [DIVIDER_WIDTH-1:0] clkPerCycle,
 	 input wire [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit,			
 	 input wire stopBit2,//0: 1 stop bit, 1: 2 stop bits
@@ -81,7 +82,8 @@ RxCore rxCore (
     .frameErrorFlag(frameErrorFlag), 
     .endOfRx(endOfRx),
     .run(run), 
-    .startBit(startBit), 
+    .startBit(startBit),
+    .stopBit(stopBit),
     .clocksPerBit(clocksPerBit), 
     .stopBit2(stopBit2), 
     .oddParity(oddParity),

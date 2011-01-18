@@ -26,7 +26,8 @@ module RxCore(
    output reg frameErrorFlag,		//bad parity or bad stop bits
    output reg endOfRx,				//one cycle pulse: 1 during last cycle of last stop bit
    output reg run,					//rx is definitely started, one of the three flag will be set
-   output wire startBit,				//rx is started, but we don't know yet if real rx or just a glitch
+   output wire startBit,			//rx is started, but we don't know yet if real rx or just a glitch
+	output wire stopBit,				//rx is over but still in stop bits
 	input wire [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit,			
 	input wire stopBit2,//0: 1 stop bit, 1: 2 stop bits
 	input wire oddParity, //if 1, parity bit is such that data+parity have an odd number of 1
@@ -46,9 +47,7 @@ module RxCore(
 
 //parameters to override
 parameter CLOCK_PER_BIT_WIDTH = 13;	//allow to support default speed of ISO7816
-//invert the polarity of the output or not
-//parameter IN_POLARITY = 1'b0;
-//parameter PARITY_POLARITY = 1'b1;
+
 //default conventions
 parameter START_BIT = 1'b0;
 parameter STOP_BIT1 = 1'b1;
@@ -76,6 +75,7 @@ wire internalIn;
 wire parityError;
 
 assign startBit = (nextState == START_STATE);
+assign stopBit = (nextState == STOP1_STATE) | (nextState == STOP2_STATE);
 assign internalIn = serialIn;
 assign parityError= parityBit ^ internalIn ^ 1'b1;
 reg flagsSet;
@@ -232,25 +232,5 @@ always @(posedge clk, negedge nReset) begin
 		endcase
 	end
 end
-
-//how to use an internal counter rather than an external one:
-//(need to be moved at top of the module)
-/*wire [CLOCK_PER_BIT_WIDTH-1:0] bitClocksCounter;
-wire bitClocksCounterMatch;
-reg [CLOCK_PER_BIT_WIDTH-1:0] bitClocksCounterCompare;
-reg bitClocksCounterInc;
-reg bitClocksCounterClear;
-wire bitClocksCounterInitVal;
-Counter #(	.WIDTH(CLOCK_PER_BIT_WIDTH),
-				.WIDTH_INIT(1)) 
-		bitClocksCounterModule(
-				.counter(bitClocksCounter),
-				.match(bitClocksCounterMatch),
-				.compare(bitClocksCounterCompare),
-				.inc(bitClocksCounterInc),
-				.clear(bitClocksCounterClear),
-				.initVal(bitClocksCounterInitVal),
-				.clk(clk),
-				.reset(reset));*/
 
 endmodule
