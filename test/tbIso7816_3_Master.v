@@ -61,6 +61,21 @@ assign {txRun, txPending, rxRun, rxStartBit, isTx, overrunErrorFlag, frameErrorF
 
 `include "ComDriverTasks.v"
 
+
+wire [3:0] spy_fiCode;
+wire [3:0] spy_diCode;
+wire [12:0] spy_fi;
+wire [7:0] spy_di;
+wire [12:0] spy_cyclesPerEtu;
+wire [7:0] spy_fMax;
+wire spy_isActivated,spy_tsReceived,spy_tsError;
+wire spy_useIndirectConvention,spy_atrIsEarly,spy_atrIsLate;
+wire [3:0] spy_atrK;
+wire spy_atrHasTck,spy_atrCompleted; 
+wire spy_useT0,spy_useT1,spy_useT15,spy_waitCardTx,spy_waitTermTx,spy_cardTx,spy_termTx,spy_guardTime; 
+wire spy_overrunError,spy_frameError;
+wire [7:0] spy_lastByte;
+
 	// Instantiate the Unit Under Test (UUT)
 	Iso7816_3_Master uut (
 		.nReset(nReset), 
@@ -93,6 +108,43 @@ assign {txRun, txPending, rxRun, rxStartBit, isTx, overrunErrorFlag, frameErrorF
 		.isoVdd(isoVdd),
 		.isoSio(isoSio)
 	);
+
+	Iso7816_3_t0_analyzer spy (
+    .nReset(nReset), 
+    .clk(clk), 
+    .clkPerCycle(clkPerCycle[0]), 
+    .isoReset(isoReset), 
+    .isoClk(isoClk), 
+    .isoVdd(isoVdd), 
+    .isoSio(isoSio), 
+    .fiCode(spy_fiCode), 
+    .diCode(spy_diCode), 
+    .fi(spy_fi), 
+    .di(spy_di), 
+    .cyclesPerEtu(spy_cyclesPerEtu), 
+    .fMax(spy_fMax), 
+    .isActivated(spy_isActivated), 
+    .tsReceived(spy_tsReceived), 
+    .tsError(spy_tsError), 
+    .useIndirectConvention(spy_useIndirectConvention), 
+    .atrIsEarly(spy_atrIsEarly), 
+    .atrIsLate(spy_atrIsLate), 
+    .atrK(spy_atrK), 
+    .atrHasTck(spy_atrHasTck), 
+    .atrCompleted(spy_atrCompleted), 
+    .useT0(spy_useT0), 
+    .useT1(spy_useT1), 
+    .useT15(spy_useT15), 
+    .waitCardTx(spy_waitCardTx), 
+    .waitTermTx(spy_waitTermTx), 
+    .cardTx(spy_cardTx), 
+    .termTx(spy_termTx), 
+    .guardTime(spy_guardTime), 
+    .overrunError(spy_overrunError), 
+    .frameError(spy_frameError), 
+    .lastByte(spy_lastByte)
+    );
+
 	
 	integer tbErrorCnt;
 	initial begin

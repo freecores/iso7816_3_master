@@ -5,12 +5,12 @@ module FiDiAnalyzer(
 	input wire [3:0] fiCode,
 	input wire [3:0] diCode,
 	output wire [12:0] fi,
-	output wire [7:0] di,
-	output wire [12:0] cyclesPerEtu, //truncate values to 'floor' integer value
+	output reg [7:0] di,
+	output reg [12:0] cyclesPerEtu, //truncate values to 'floor' integer value
 	output wire [7:0] fMax				//in 0.1MHz units
 	);
 
-wire [13+8] fiStuff;
+reg [13+8:0] fiStuff;
 assign {fi,fMax} = fiStuff;
 always @(*) begin:fiBlock
 	case(fiCode)

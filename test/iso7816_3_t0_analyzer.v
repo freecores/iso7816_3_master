@@ -4,36 +4,39 @@
 module Iso7816_3_t0_analyzer(
 	input wire nReset,
 	input wire clk,
+	input wire [DIVIDER_WIDTH-1:0] clkPerCycle,
 	input wire isoReset,
 	input wire isoClk,
 	input wire isoVdd,
 	input wire isoSio,
 	output reg [3:0] fiCode,
 	output reg [3:0] diCode,
-	output reg [3:0] fi,
-	output reg [3:0] di,
-	output reg [12:0] cyclesPerEtu,
-	output reg [7:0] fMax,
+	output wire [12:0] fi,
+	output wire [7:0] di,
+	output wire [12:0] cyclesPerEtu,
+	output wire [7:0] fMax,
 	output wire isActivated,
 	output wire tsReceived,
 	output wire tsError,
 	output wire useIndirectConvention,
 	output wire atrIsEarly,//high if TS received before 400 cycles after reset release
 	output wire atrIsLate,//high if TS is still not received after 40000 cycles after reset release
-	output wire atrCompleted,
+	output reg [3:0] atrK,//number of historical bytes
+	output reg atrHasTck,
+	output reg atrCompleted,
 	output reg useT0,
 	output reg useT1,
 	output reg useT15,
 	output reg waitCardTx,
 	output reg waitTermTx,
-	output wire cardTx,
-	output wire termTx,
+	output reg cardTx,
+	output reg termTx,
 	output wire guardTime,
 	output wire overrunError,
 	output wire frameError,
 	output reg [7:0] lastByte
 	);
-
+parameter DIVIDER_WIDTH = 1;
 	
 reg [8:0] tsCnt;//counter to start ATR 400 cycles after reset release
 
@@ -45,29 +48,35 @@ localparam P2_I = 8*1;
 localparam P3_I = 0;
 reg [CLA_I+7:0] tpduHeader;
 
-wire COM_statusOut=statusOut;
+//wire COM_statusOut=statusOut;
 wire COM_clk=isoClk;
 integer COM_errorCnt;
+wire txPending=1'b0;
+wire txRun=1'b0;
 
 wire rxRun, rxStartBit, overrunErrorFlag, frameErrorFlag, bufferFull;
 assign overrunErrorFlag = overrunError;
 assign frameErrorFlag = frameError;	 
 
 wire [7:0] rxData;
-wire nCsDataOut;
-
-`include "ComRxDriverTasks.v"
-
-wire endOfRx;
+reg nCsDataOut;
 
 wire msbFirst = useIndirectConvention;
 wire sioHighValue = ~useIndirectConvention;
 wire oddParity = 1'b0;
 
-wire plainRxData = sioHighValue ? rxData : ~rxData;
+wire [7:0] dataOut = sioHighValue ? rxData : ~rxData;
+
+
+`include "ComRxDriverTasks.v"
+
+wire endOfRx;
+
+wire stopBit2 = useT0;//1 if com use 2 stop bits --> 12 ETU / byte
 
 RxCoreSelfContained #(
-		.DIVIDER_WIDTH(4'd13))
+		.DIVIDER_WIDTH(DIVIDER_WIDTH),
+		.CLOCK_PER_BIT_WIDTH(4'd13))
 	rxCore (
     .dataOut(rxData), 
     .overrunErrorFlag(overrunError), 
@@ -84,14 +93,13 @@ RxCoreSelfContained #(
     .msbFirst(msbFirst),
 	 .ackFlags(nCsDataOut), 
     .serialIn(isoSio), 
-    .comClk(comClk), 
+    .comClk(isoClk), 
     .clk(clk), 
     .nReset(nReset)
     );
 
 TsAnalyzer tsAnalyzer(
 	.nReset(nReset),
-	.clk(clk),
 	.isoReset(isoReset),
 	.isoClk(isoClk),
 	.isoVdd(isoVdd),
@@ -116,24 +124,82 @@ FiDiAnalyzer fiDiAnalyzer(
 	);
 	
 wire run = rxStartBit | rxRun;
-localparam WAIT_CLA = 0;
-integer t0State;
-always @(posedge comClk, negedge nReset) begin
+localparam ATR_T0 = 0;
+localparam ATR_TDI = 1;
+localparam ATR_HISTORICAL = 2;
+localparam ATR_TCK = 3;
+localparam T0_HEADER = 0;
+localparam T0_PB = 0;
+localparam T0_DATA = 0;
+integer fsmState;
+
+reg [11:0] tdiStruct;
+wire [3:0] tdiCnt;//i+1
+wire [7:0] tdiData;//value of TDi
+assign {tdiCnt,tdiData}=tdiStruct;
+
+wire [1:0] nIfBytes;
+HammingWeight hammingWeight(.dataIn(tdiData[7:4]), .hammingWeight(nIfBytes));
+reg [7:0] bytesCnt;
+
+always @(posedge isoClk, negedge nReset) begin
 	if(~nReset) begin
 		fiCode<=4'b0001;
 		diCode<=4'b0001;
-		useT0<=1'b0;
+		useT0<=1'b1;
 		useT1<=1'b0;
 		useT15<=1'b0;
 		waitCardTx<=1'b0;
 		waitTermTx<=1'b0;
 		lastByte<=8'b0;
-		t0State<=WAIT_CLA;
+		fsmState<=ATR_TDI;
+		atrHasTck<=1'b0;
+		bytesCnt<=8'h0;
+		tdiStruct<=12'h0;
+		atrCompleted<=1'b0;
 	end else if(isActivated) begin
 		if(~tsReceived) begin
 			waitCardTx<=1'b1;
-		end else if(~t0Received) begin
 		end else if(~atrCompleted) begin
+			//ATR analysis
+			case(fsmState)
+				ATR_TDI: begin
+					if(endOfRx) begin
+						if(bytesCnt==nIfBytes) begin //TDi bytes
+							bytesCnt <= 2'h0;
+							tdiStruct <= {tdiCnt+1,dataOut};
+							if(4'h0==tdiCnt) begin//this is T0
+								atrK <= dataOut[3:0];
+								fsmState <= (4'b0!=dataOut[7:4]) ? ATR_TDI : 
+												(4'b0!=dataOut[3:0]) ? ATR_HISTORICAL : T0_HEADER;
+							end else begin//TDi, i from 1 to 15
+								fsmState <= (4'b0!=dataOut[7:4]) ? ATR_TDI : 
+												(4'b0!=atrK) ? ATR_HISTORICAL : T0_HEADER;
+							end
+						end else begin //TA, TB or TC bytes
+							//TODO: get relevant info
+							bytesCnt <= bytesCnt+1;
+						end
+					end
+				end
+				ATR_HISTORICAL: begin
+					if(endOfRx) begin
+						if(bytesCnt==atrK) begin
+							atrCompleted <= ~atrHasTck;
+							fsmState <= atrHasTck ? ATR_TCK : T0_HEADER;
+						end else begin
+							bytesCnt <= bytesCnt+1;
+						end
+					end
+				end
+				ATR_TCK: begin
+					if(endOfRx) begin
+					//TODO:check
+						atrCompleted <= 1'b1;
+						fsmState <= T0_HEADER;
+					end
+				end
+			endcase
 		end else if(useT0) begin
 			//T=0 cmd/response monitoring state machine
 		
@@ -144,16 +210,16 @@ end
 
 reg [1:0] txDir;
 always @(*) begin: errorSigDirectionBlock
-	if(stopBit & ~isoSio)
-		{cardTx, termTx}=txDir[0:1];
+	if(guardTime & ~isoSio)
+		{cardTx, termTx}={txDir[0],txDir[1]};
 	else
-		{cardTx, termTx}=txDir[1:0];
+		{cardTx, termTx}={txDir[1],txDir[0]};
 end
-always @(posedge comClk, negedge nReset) begin: comDirectionBlock
+always @(posedge isoClk, negedge nReset) begin: comDirectionBlock
 	if(~nReset | ~run) begin
 		txDir<=2'b00;
 	end else begin
-		if(~stopBit) begin //{waitCardTx, waitTermTx} is updated during stop bits so we hold current value here
+		if(~guardTime) begin //{waitCardTx, waitTermTx} is updated during stop bits so we hold current value here
 			case({waitCardTx, waitTermTx})
 				2'b00: txDir<=2'b00;
 				2'b01: txDir<=2'b01;
