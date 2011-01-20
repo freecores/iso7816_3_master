@@ -43,6 +43,7 @@ module RxCoreSelfContained(
 //parameters to override
 parameter DIVIDER_WIDTH = 1;
 parameter CLOCK_PER_BIT_WIDTH = 13;	//allow to support default speed of ISO7816
+parameter PRECISE_STOP_BIT = 0; //if 1, stopBit signal goes high exactly at start of stop bit instead of middle of parity bit
 //invert the polarity of the output or not
 //parameter IN_POLARITY = 1'b0;
 //parameter PARITY_POLARITY = 1'b1;
@@ -75,7 +76,10 @@ Counter #(	.DIVIDER_WIDTH(DIVIDER_WIDTH),
 				.clk(clk),
 				.nReset(nReset));
 
-RxCore rxCore (
+RxCore #(	.CLOCK_PER_BIT_WIDTH(CLOCK_PER_BIT_WIDTH),
+				.PRECISE_STOP_BIT(PRECISE_STOP_BIT)
+				)
+	rxCore (
     .dataOut(dataOut), 
     .overrunErrorFlag(overrunErrorFlag), 
     .dataOutReadyFlag(dataOutReadyFlag), 
@@ -97,7 +101,8 @@ RxCore rxCore (
 	.bitClocksCounterCompare(bitClocksCounterCompare),
 	.bitClocksCounterInc(bitClocksCounterInc),
 	.bitClocksCounterClear(bitClocksCounterClear),
-	.bitClocksCounterInitVal(bitClocksCounterInitVal)
+	.bitClocksCounterInitVal(bitClocksCounterInitVal),
+	.bitClocksCounter(bitClocksCounter)
     );
 
 endmodule

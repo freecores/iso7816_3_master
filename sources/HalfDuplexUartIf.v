@@ -25,6 +25,7 @@ module HalfDuplexUartIf(
     input wire [DIVIDER_WIDTH-1:0] clkPerCycle,
 	 input wire [7:0] dataIn,
     input wire nWeDataIn,
+    input wire [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit,
     output wire [7:0] dataOut,
     input wire nCsDataOut,
     output wire [7:0] statusOut,
@@ -35,12 +36,13 @@ module HalfDuplexUartIf(
     );
 //parameters to override
 parameter DIVIDER_WIDTH = 1;
+parameter CLOCK_PER_BIT_WIDTH = 13;	//allow to support default speed of ISO7816
 
    reg [7:0] dataReg;
 
 	// Inputs
 	wire [7:0] txData;
-	wire [12:0] clocksPerBit;
+	//wire [12:0] clocksPerBit;
 	wire stopBit2=1;
 	wire oddParity=0; //if 1, parity bit is such that data+parity have an odd number of 1
    wire msbFirst=0;  //if 1, bits will be send in the order startBit, b7, b6, b5...b0, parity
@@ -64,7 +66,7 @@ parameter DIVIDER_WIDTH = 1;
    reg [1:0] flagsReg;
    
    assign txData = dataReg;
-   assign clocksPerBit = 7;
+   //assign clocksPerBit = 7;
 
    assign dataOut=dataReg;
    assign statusOut[7:0]={txRun, txPending, rxRun, rxStartBit, isTx, flagsReg, bufferFull};
@@ -105,7 +107,10 @@ always @(posedge clk, negedge nReset) begin
    end
 end   
 
-	BasicHalfDuplexUart #(.DIVIDER_WIDTH(DIVIDER_WIDTH))
+	BasicHalfDuplexUart #(
+		.DIVIDER_WIDTH(DIVIDER_WIDTH),
+		.CLOCK_PER_BIT_WIDTH(CLOCK_PER_BIT_WIDTH)
+		)
 	uart (
 		.rxData(rxData), 
 		.overrunErrorFlag(overrunErrorFlag), 

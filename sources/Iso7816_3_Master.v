@@ -27,7 +27,7 @@ module Iso7816_3_Master(
 	 input wire startDeactivation,//Starts deactivation sequence
     input wire [7:0] dataIn,
     input wire nWeDataIn,
-	 input wire [12:0] cyclePerEtu,
+	 input wire [12:0] cyclesPerEtu,
     output wire [7:0] dataOut,
     input wire nCsDataOut,
     output wire [7:0] statusOut,
@@ -53,12 +53,17 @@ assign isoSio = isTx ? serialOut : 1'bz;
 pullup(isoSio);
 wire comClk;
 
-	HalfDuplexUartIf uart (
+	HalfDuplexUartIf #(
+		.DIVIDER_WIDTH(1'b1),
+		.CLOCK_PER_BIT_WIDTH(4'd13)
+		)
+	uart (
 		.nReset(nReset), 
 		.clk(clk),
 		.clkPerCycle(1'b0),
 		.dataIn(dataIn), 
 		.nWeDataIn(nWeDataIn), 
+		.clocksPerBit(cyclesPerEtu), 
 		.dataOut(dataOut), 
 		.nCsDataOut(nCsDataOut), 
 		.statusOut(statusOut), 

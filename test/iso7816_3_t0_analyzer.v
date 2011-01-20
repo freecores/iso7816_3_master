@@ -34,7 +34,8 @@ module Iso7816_3_t0_analyzer(
 	output wire guardTime,
 	output wire overrunError,
 	output wire frameError,
-	output reg [7:0] lastByte
+	output reg [7:0] lastByte,
+	output reg [31:0] bytesCnt
 	);
 parameter DIVIDER_WIDTH = 1;
 	
@@ -48,18 +49,17 @@ localparam P2_I = 8*1;
 localparam P3_I = 0;
 reg [CLA_I+7:0] tpduHeader;
 
-//wire COM_statusOut=statusOut;
-wire COM_clk=isoClk;
-integer COM_errorCnt;
-wire txPending=1'b0;
-wire txRun=1'b0;
+//wire COM_clk=isoClk;
+//integer COM_errorCnt;
+//wire txPending=1'b0;
+//wire txRun=1'b0;
 
 wire rxRun, rxStartBit, overrunErrorFlag, frameErrorFlag, bufferFull;
 assign overrunErrorFlag = overrunError;
 assign frameErrorFlag = frameError;	 
 
 wire [7:0] rxData;
-reg nCsDataOut;
+reg ackFlags;
 
 wire msbFirst = useIndirectConvention;
 wire sioHighValue = ~useIndirectConvention;
@@ -68,7 +68,7 @@ wire oddParity = 1'b0;
 wire [7:0] dataOut = sioHighValue ? rxData : ~rxData;
 
 
-`include "ComRxDriverTasks.v"
+//`include "ComRxDriverTasks.v"
 
 wire endOfRx;
 
@@ -76,7 +76,8 @@ wire stopBit2 = useT0;//1 if com use 2 stop bits --> 12 ETU / byte
 
 RxCoreSelfContained #(
 		.DIVIDER_WIDTH(DIVIDER_WIDTH),
-		.CLOCK_PER_BIT_WIDTH(4'd13))
+		.CLOCK_PER_BIT_WIDTH(4'd13),
+		.PRECISE_STOP_BIT(1'b1))
 	rxCore (
     .dataOut(rxData), 
     .overrunErrorFlag(overrunError), 
@@ -87,11 +88,11 @@ RxCoreSelfContained #(
     .startBit(rxStartBit), 
 	 .stopBit(guardTime),
     .clkPerCycle(clkPerCycle),
-    .clocksPerBit(cyclesPerEtu), 
+    .clocksPerBit(cyclesPerEtu-1), 
     .stopBit2(stopBit2), 
     .oddParity(oddParity),
     .msbFirst(msbFirst),
-	 .ackFlags(nCsDataOut), 
+	 .ackFlags(ackFlags), 
     .serialIn(isoSio), 
     .comClk(isoClk), 
     .clk(clk), 
@@ -140,8 +141,20 @@ assign {tdiCnt,tdiData}=tdiStruct;
 
 wire [1:0] nIfBytes;
 HammingWeight hammingWeight(.dataIn(tdiData[7:4]), .hammingWeight(nIfBytes));
-reg [7:0] bytesCnt;
-
+reg [7:0] tempBytesCnt;
+always @(posedge isoClk, negedge nReset) begin
+	if(~nReset) begin
+		lastByte<=8'b0;
+		ackFlags<=1'b0;	
+		bytesCnt<=32'b0;		
+	end else if(ackFlags) begin
+		ackFlags<=1'b0;
+	end else if(frameErrorFlag|bufferFull) begin
+		lastByte<=dataOut;
+		ackFlags<=1'b1;
+		bytesCnt<=bytesCnt+1'b1;
+	end
+end
 always @(posedge isoClk, negedge nReset) begin
 	if(~nReset) begin
 		fiCode<=4'b0001;
@@ -151,10 +164,9 @@ always @(posedge isoClk, negedge nReset) begin
 		useT15<=1'b0;
 		waitCardTx<=1'b0;
 		waitTermTx<=1'b0;
-		lastByte<=8'b0;
 		fsmState<=ATR_TDI;
 		atrHasTck<=1'b0;
-		bytesCnt<=8'h0;
+		tempBytesCnt<=8'h0;
 		tdiStruct<=12'h0;
 		atrCompleted<=1'b0;
 	end else if(isActivated) begin
@@ -165,8 +177,8 @@ always @(posedge isoClk, negedge nReset) begin
 			case(fsmState)
 				ATR_TDI: begin
 					if(endOfRx) begin
-						if(bytesCnt==nIfBytes) begin //TDi bytes
-							bytesCnt <= 2'h0;
+						if(tempBytesCnt==nIfBytes) begin //TDi bytes
+							tempBytesCnt <= 2'h0;
 							tdiStruct <= {tdiCnt+1,dataOut};
 							if(4'h0==tdiCnt) begin//this is T0
 								atrK <= dataOut[3:0];
@@ -178,17 +190,17 @@ always @(posedge isoClk, negedge nReset) begin
 							end
 						end else begin //TA, TB or TC bytes
 							//TODO: get relevant info
-							bytesCnt <= bytesCnt+1;
+							tempBytesCnt <= tempBytesCnt+1;
 						end
 					end
 				end
 				ATR_HISTORICAL: begin
 					if(endOfRx) begin
-						if(bytesCnt==atrK) begin
+						if(tempBytesCnt==atrK) begin
 							atrCompleted <= ~atrHasTck;
 							fsmState <= atrHasTck ? ATR_TCK : T0_HEADER;
 						end else begin
-							bytesCnt <= bytesCnt+1;
+							tempBytesCnt <= tempBytesCnt+1;
 						end
 					end
 				end

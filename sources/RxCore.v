@@ -27,7 +27,7 @@ module RxCore(
    output reg endOfRx,				//one cycle pulse: 1 during last cycle of last stop bit
    output reg run,					//rx is definitely started, one of the three flag will be set
    output wire startBit,			//rx is started, but we don't know yet if real rx or just a glitch
-	output wire stopBit,				//rx is over but still in stop bits
+	output reg stopBit,				//rx is over but still in stop bits
 	input wire [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit,			
 	input wire stopBit2,//0: 1 stop bit, 1: 2 stop bits
 	input wire oddParity, //if 1, parity bit is such that data+parity have an odd number of 1
@@ -42,11 +42,13 @@ module RxCore(
 	output reg bitClocksCounterClear,
 	output wire bitClocksCounterInitVal,
    input wire bitClocksCounterEarlyMatch,
-	input wire bitClocksCounterMatch
+	input wire bitClocksCounterMatch,
+	input wire [CLOCK_PER_BIT_WIDTH-1:0] bitClocksCounter
     );
 
 //parameters to override
 parameter CLOCK_PER_BIT_WIDTH = 13;	//allow to support default speed of ISO7816
+parameter PRECISE_STOP_BIT = 0; //if 1, stopBit signal goes high exactly at start of stop bit instead of middle of parity bit
 
 //default conventions
 parameter START_BIT = 1'b0;
@@ -75,7 +77,7 @@ wire internalIn;
 wire parityError;
 
 assign startBit = (nextState == START_STATE);
-assign stopBit = (nextState == STOP1_STATE) | (nextState == STOP2_STATE);
+//assign stopBit = (nextState == STOP1_STATE) | (nextState == STOP2_STATE);
 assign internalIn = serialIn;
 assign parityError= parityBit ^ internalIn ^ 1'b1;
 reg flagsSet;
@@ -118,13 +120,16 @@ always @(posedge clk, negedge nReset) begin
 		frameErrorFlag <= #1 0;
 		run <= #1 0;
       endOfRx <= #1 0;
+		stopBit<= #1 0;
 	end else begin	
 		case(nextState)
 			IDLE_STATE: begin
 				if(bitClocksCounterEarlyMatch)
                endOfRx <= #1 1'b1;
-            if(bitClocksCounterMatch)
+            if(bitClocksCounterMatch) begin
                endOfRx <= #1 0;
+					stopBit <= #1 0;
+				end
             if(ackFlags) begin
 					//overrunErrorFlag is auto cleared at PARITY_STATE
 					//meanwhile, it prevent dataOutReadyFlag to be set by the termination of the lost byte
@@ -189,6 +194,7 @@ always @(posedge clk, negedge nReset) begin
 						frameErrorFlag <= #1 0;
 					end
 					flagsSet=1;
+					if(PRECISE_STOP_BIT==0) stopBit <= #1 1;
 					if(stopBit2)
 						nextState <= #1 STOP1_STATE;
 					else
@@ -212,6 +218,11 @@ always @(posedge clk, negedge nReset) begin
 				end else if(ackFlags) begin
 					frameErrorFlag <= #1 0;
 				end
+				if(PRECISE_STOP_BIT!=0) begin
+					if(bitClocksCounter==(bitClocksCounterCompare/2)) begin
+						stopBit <= #1 1;
+					end
+				end
 			end
 			STOP2_STATE: begin
 				if(ackFlags) begin
@@ -226,6 +237,11 @@ always @(posedge clk, negedge nReset) begin
 					nextState <= #1 IDLE_STATE;
 				end else if(ackFlags) begin
 					frameErrorFlag <= #1 0;
+				end
+				if(PRECISE_STOP_BIT!=0) begin
+					if(bitClocksCounter==(bitClocksCounterCompare/2)) begin
+						stopBit <= #1 1;
+					end
 				end
 			end
 			default: nextState <= #1 IDLE_STATE;

@@ -32,7 +32,7 @@ parameter CLK_PERIOD = 10;//should be %2
 	reg startDeactivation;
 	reg [7:0] dataIn;
 	reg nWeDataIn;
-	reg [12:0] cyclePerEtu;
+	reg [12:0] cyclesPerEtu;
 	reg nCsDataOut;
 	reg nCsStatusOut;
 
@@ -75,6 +75,7 @@ wire spy_atrHasTck,spy_atrCompleted;
 wire spy_useT0,spy_useT1,spy_useT15,spy_waitCardTx,spy_waitTermTx,spy_cardTx,spy_termTx,spy_guardTime; 
 wire spy_overrunError,spy_frameError;
 wire [7:0] spy_lastByte;
+wire [31:0] spy_bytesCnt;
 
 	// Instantiate the Unit Under Test (UUT)
 	Iso7816_3_Master uut (
@@ -85,7 +86,7 @@ wire [7:0] spy_lastByte;
 		.startDeactivation(startDeactivation), 
 		.dataIn(dataIn), 
 		.nWeDataIn(nWeDataIn), 
-		.cyclePerEtu(cyclePerEtu), 
+		.cyclesPerEtu(cyclesPerEtu), 
 		.dataOut(dataOut), 
 		.nCsDataOut(nCsDataOut), 
 		.statusOut(statusOut), 
@@ -142,7 +143,8 @@ wire [7:0] spy_lastByte;
     .guardTime(spy_guardTime), 
     .overrunError(spy_overrunError), 
     .frameError(spy_frameError), 
-    .lastByte(spy_lastByte)
+    .lastByte(spy_lastByte),
+    .bytesCnt(spy_bytesCnt)
     );
 
 	
@@ -157,7 +159,7 @@ wire [7:0] spy_lastByte;
 		startDeactivation = 0;
 		dataIn = 0;
 		nWeDataIn = 1'b1;
-		cyclePerEtu = 0;
+		cyclesPerEtu = 372-1;
 		nCsDataOut = 1'b1;
 		nCsStatusOut = 1'b1;
 
@@ -206,7 +208,7 @@ wire [7:0] spy_lastByte;
 	end
 	initial begin
 		// timeout
-		#100000;  
+		#10000000;  
       tbErrorCnt=tbErrorCnt+1;
       $display("ERROR: timeout expired");
       #10;

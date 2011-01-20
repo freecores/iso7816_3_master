@@ -40,7 +40,7 @@ module DummyCard(
 	wire [7:0] dataOut;
 	wire [7:0] statusOut;
 	wire serialOut;
-	
+	reg [12:0] cyclesPerEtu;
 
 	wire cardIsoClk;//card use its own generated clock (like true UARTs)
 	HalfDuplexUartIf uartIf (
@@ -49,6 +49,7 @@ module DummyCard(
 		.clkPerCycle(clkPerCycle), 
 		.dataIn(dataIn), 
 		.nWeDataIn(nWeDataIn), 
+		.clocksPerBit(cyclesPerEtu), 
 		.dataOut(dataOut), 
 		.nCsDataOut(nCsDataOut), 
 		.statusOut(statusOut), 
@@ -134,6 +135,7 @@ always @(posedge isoClk, negedge isoReset) begin
 		nCsStatusOut<=1'b1;
 		tsCnt<=9'b0;
 		sendAtr<=1'b1;
+		cyclesPerEtu <= 13'd372-1'b1;
 	end else if(tsCnt!=9'd400) begin
 		tsCnt <= tsCnt + 1'b1;
 	end else if(sendAtr) begin
