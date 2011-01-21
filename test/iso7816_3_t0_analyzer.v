@@ -130,8 +130,14 @@ localparam ATR_TDI = 1;
 localparam ATR_HISTORICAL = 2;
 localparam ATR_TCK = 3;
 localparam T0_HEADER = 0;
-localparam T0_PB = 0;
-localparam T0_DATA = 0;
+localparam T0_HEADER_TPDU = 1;
+localparam T0_PB = 2;
+localparam T0_DATA = 3;
+localparam T0_NACK_DATA = 4;
+localparam T0_SW1 = 5;
+localparam T0_SW2 = 6;
+localparam T0_HEADER_PPS = 100;
+
 integer fsmState;
 
 reg [11:0] tdiStruct;
@@ -162,16 +168,16 @@ always @(posedge isoClk, negedge nReset) begin
 		useT0<=1'b1;
 		useT1<=1'b0;
 		useT15<=1'b0;
-		waitCardTx<=1'b0;
-		waitTermTx<=1'b0;
+		{waitCardTx,waitTermTx}<=2'b00;
 		fsmState<=ATR_TDI;
 		atrHasTck<=1'b0;
 		tempBytesCnt<=8'h0;
 		tdiStruct<=12'h0;
 		atrCompleted<=1'b0;
+		atrK<=4'b0;
 	end else if(isActivated) begin
 		if(~tsReceived) begin
-			waitCardTx<=1'b1;
+			{waitCardTx,waitTermTx}<=2'b10;
 		end else if(~atrCompleted) begin
 			//ATR analysis
 			case(fsmState)
@@ -188,6 +194,10 @@ always @(posedge isoClk, negedge nReset) begin
 								fsmState <= (4'b0!=dataOut[7:4]) ? ATR_TDI : 
 												(4'b0!=atrK) ? ATR_HISTORICAL : T0_HEADER;
 							end
+							if(12'h0=={dataOut,atrK}) begin
+								atrCompleted <= 1'b1;
+								{waitCardTx,waitTermTx}<=2'b01;
+							end
 						end else begin //TA, TB or TC bytes
 							//TODO: get relevant info
 							tempBytesCnt <= tempBytesCnt+1;
@@ -197,8 +207,14 @@ always @(posedge isoClk, negedge nReset) begin
 				ATR_HISTORICAL: begin
 					if(endOfRx) begin
 						if(tempBytesCnt==atrK) begin
-							atrCompleted <= ~atrHasTck;
-							fsmState <= atrHasTck ? ATR_TCK : T0_HEADER;
+							tempBytesCnt <= 8'h0;
+							if(atrHasTck) begin
+								fsmState <= ATR_TCK;
+							end else begin
+								atrCompleted <= ~atrHasTck;
+								{waitCardTx,waitTermTx}<=2'b10;
+								fsmState <= T0_HEADER;
+							end
 						end else begin
 							tempBytesCnt <= tempBytesCnt+1;
 						end
@@ -208,14 +224,95 @@ always @(posedge isoClk, negedge nReset) begin
 					if(endOfRx) begin
 					//TODO:check
 						atrCompleted <= 1'b1;
+						{waitCardTx,waitTermTx}<=2'b10;
 						fsmState <= T0_HEADER;
 					end
 				end
 			endcase
 		end else if(useT0) begin
 			//T=0 cmd/response monitoring state machine
-		
-		
+			case(fsmState)
+				T0_HEADER: begin
+					if(endOfRx) begin
+						tpduHeader[CLA_I+:8]<=dataOut;
+						tempBytesCnt <= 1;
+						if(8'hFF==dataOut)
+							fsmState <= T0_HEADER_PPS;//TODO
+						else
+							fsmState <= T0_HEADER_TPDU;
+					end
+				end
+				T0_HEADER_TPDU: begin
+					if(endOfRx) begin
+						tpduHeader[(CLA_I-(tempBytesCnt*8))+:8]<=dataOut;
+						if(4==tempBytesCnt) begin
+							tempBytesCnt <= 8'h0;
+							fsmState <= T0_PB;
+							{waitCardTx,waitTermTx}<=2'b10;
+						end else begin
+							tempBytesCnt <= tempBytesCnt+1;
+						end
+					end
+				end
+				T0_PB: begin
+					if(endOfRx) begin
+						case(dataOut[7:4])
+							4'h6: begin
+								fsmState <= (4'h0==dataOut[3:0]) ? T0_PB : T0_SW2;
+							end
+							4'h9: begin
+								fsmState <= T0_SW2;
+							end
+							default: begin
+								case(dataOut)
+									tpduHeader[INS_I+:8]: begin//ACK
+										fsmState <= T0_DATA;
+										{waitCardTx,waitTermTx}<=2'b11;
+									end
+									~tpduHeader[INS_I+:8]: begin//NACK
+										fsmState <= T0_NACK_DATA;
+										{waitCardTx,waitTermTx}<=2'b11;
+									end
+									default: begin //invalid
+										//TODO
+									end
+								endcase
+							end
+						endcase
+					end
+				end
+				T0_NACK_DATA: begin
+					if(endOfRx) begin
+						fsmState <= T0_PB;
+						{waitCardTx,waitTermTx}<=2'b10;
+						tempBytesCnt <= tempBytesCnt+1;
+					end
+				end
+				T0_SW1: begin
+					if(endOfRx) begin
+					//TODO:check != 60 but equal to 6x or 9x
+						fsmState <= T0_SW2;
+						{waitCardTx,waitTermTx}<=2'b10;
+					end
+				end
+				T0_SW2: begin
+					if(endOfRx) begin
+						fsmState <= T0_HEADER;
+						{waitCardTx,waitTermTx}<=2'b01;
+					end
+				end
+				T0_DATA: begin
+					if(endOfRx) begin
+						if(tempBytesCnt==(tpduHeader[P3_I+:8]-1)) begin
+							tempBytesCnt <= 0;
+							fsmState <= T0_SW1;
+							{waitCardTx,waitTermTx}<=2'b10;
+						end else begin
+							tempBytesCnt <= tempBytesCnt+1;
+						end
+					end
+				end
+			endcase		
 		end
 	end
 end
@@ -233,10 +330,10 @@ always @(posedge isoClk, negedge nReset) begin: comDirectionBlock
 	end else begin
 		if(~guardTime) begin //{waitCardTx, waitTermTx} is updated during stop bits so we hold current value here
 			case({waitCardTx, waitTermTx})
-				2'b00: txDir<=2'b00;
-				2'b01: txDir<=2'b01;
-				2'b10: txDir<=2'b10;
-				2'b11: txDir<=2'b00;
+				2'b00: txDir<=2'b00;//no one should/is sending
+				2'b01: txDir<=2'b01;//terminal should/is sending
+				2'b10: txDir<=2'b10;//card should/is sending
+				2'b11: txDir<=2'b11;//either card OR terminal should/is sending (we just don't know)
 			endcase
 		end
 	end

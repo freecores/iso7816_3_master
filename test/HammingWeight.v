@@ -14,6 +14,7 @@ output reg [WEIGHT_WIDTH-1:0] hammingWeight;
 
 always @(*) begin:hamminWeightBlock
 	integer i;
+	hammingWeight=0;
 	for(i=0;i<DATA_WIDTH;i=i+1) begin
 		hammingWeight=hammingWeight + dataIn[i];
 	end

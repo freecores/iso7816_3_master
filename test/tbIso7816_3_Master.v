@@ -186,8 +186,8 @@ wire [31:0] spy_bytesCnt;
 			end
 			@(posedge clk);
 		end
-		$display("Two cycle pause in communication detected, stop simulation");
-		#200
+		$display("Two cycle pause in communication detected, stop simulation, time=",$time);
+		#(CLK_PERIOD*372*12);
 		$finish;
 	end
 	//T=0 tpdu stimuli
