@@ -144,7 +144,7 @@ always @(posedge clk, negedge nReset) begin
 							run <= #1 0;
                   end
 					end else begin
-						parityBit <= #1 oddParity;
+						parityBit <= #1 ~oddParity;
 						run <= #1 0;
 						nextState <= #1 START_STATE;
 					end

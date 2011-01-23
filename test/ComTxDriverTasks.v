@@ -1,8 +1,6 @@
+`include "HexStringConversion.v"
 
-//wire txRun,txPending, rxRun, rxStartBit, isTx, overrunErrorFlag, frameErrorFlag, bufferFull;
-//assign {txRun, txPending, rxRun, rxStartBit, isTx, overrunErrorFlag, frameErrorFlag, bufferFull} = COM_statusOut;
-
-
+//low level tasks
 task sendByte;
   input [7:0] data;
   begin
@@ -28,5 +26,23 @@ task waitEndOfTx;
 		wait(txPending==0);
 		wait(isTx==0);
 	end
+endtask
+
+
+//Higher level tasks
+task sendHexBytes;
+	input [16*257:0] bytesString;
+	integer i;
+	reg [15:0] byteInHex;
+	reg [7:0] byteToSend;
+begin
+	for(i=16*256;i>=0;i=i-16) begin
+		byteInHex=bytesString[i+:16];
+		if(16'h0!=byteInHex) begin
+			byteToSend=hexString2Byte(byteInHex);
+			sendByte(byteToSend);
+		end
+	end
+end
 endtask
 

@@ -192,19 +192,16 @@ wire [31:0] spy_bytesCnt;
 	end
 	//T=0 tpdu stimuli
 	initial begin
-		receiveAndCheckByte(8'h3B);
-		receiveAndCheckByte(8'h00);
-		//sendBytes("000C000001");//would be handy, TODO
-		sendByte(8'h00);
-		sendByte(8'h0C);
-		sendByte(8'h00);
-		sendByte(8'h00);
-		sendByte(8'h01);
-		receiveAndCheckByte(8'h0C);
-		//sendBytes("55");
-		sendByte(8'h55);
-		receiveAndCheckByte(8'h90);
-		receiveAndCheckByte(8'h00);
+		//receiveAndCheckByte(8'h3B);
+		//receiveAndCheckByte(8'h00);
+		receiveAndCheckHexBytes("3B00");
+		sendHexBytes("000C000001");
+		//receiveAndCheckByte(8'h0C);
+		receiveAndCheckHexBytes("0C");
+		sendHexBytes("55");
+		//receiveAndCheckByte(8'h90);
+		//receiveAndCheckByte(8'h00);
+		receiveAndCheckHexBytes("9000");
 	end
 	initial begin
 		// timeout

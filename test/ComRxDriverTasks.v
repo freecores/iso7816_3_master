@@ -34,3 +34,19 @@ task receiveAndCheckByte;
 	end
 endtask
 
+//Higher level tasks
+task receiveAndCheckHexBytes;
+	input [16*257:0] bytesString;
+	integer i;
+	reg [15:0] byteInHex;
+	reg [7:0] byteToCheck;
+begin
+	for(i=16*256;i>=0;i=i-16) begin
+		byteInHex=bytesString[i+:16];
+		if(16'h0!=byteInHex) begin
+			byteToCheck=hexString2Byte(byteInHex);
+			receiveAndCheckByte(byteToCheck);
+		end
+	end
+end
+endtask

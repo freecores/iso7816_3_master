@@ -109,7 +109,7 @@ begin
 	for(i=0;i<tpduHeader[P3_I+7:P3_I];i=i+1) begin
 		receiveByte(buffer[i]);
 	end
-	sendWord(16'h9000);
+	sendHexBytes("9000");//sendWord(16'h9000);
 end
 endtask
 
@@ -123,7 +123,7 @@ begin
 	for(i=0;i<le;i=i+1) begin
 		sendByte(buffer[i]);
 	end
-	sendWord(16'h9000);
+	sendHexBytes("9000");//sendWord(16'h9000);
 end
 endtask
 
@@ -140,8 +140,7 @@ always @(posedge isoClk, negedge isoReset) begin
 		tsCnt <= tsCnt + 1'b1;
 	end else if(sendAtr) begin
 		sendAtr<=1'b0;
-		sendByte(8'h3B);
-		sendByte(8'h00);
+		sendHexBytes("3B00");
 		waitEndOfTx;
 	end else begin
 		//get tpdu
@@ -151,7 +150,7 @@ always @(posedge isoClk, negedge isoReset) begin
 		case(tpduHeader[7+CLA_I:P2_I])
 				32'h000C0000: writeBufferCmd;
 				32'h000A0000: readBufferCmd;
-				default: sendWord(16'h6986);
+				default: sendHexBytes("6986");//sendWord(16'h6986);
 		endcase
 	end
 end
