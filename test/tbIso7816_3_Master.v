@@ -2,7 +2,7 @@
 `default_nettype none
 ////////////////////////////////////////////////////////////////////////////////
 // Company: 
-// Engineer:
+// Engineer: Sebastien Riou
 //
 // Create Date:   22:16:42 01/10/2011
 // Design Name:   Iso7816_3_Master
@@ -48,9 +48,14 @@ parameter CLK_PERIOD = 10;//should be %2
 	wire isoClk;
 	wire isoReset;
 	wire isoVdd;
+	
+	//probe outputs
+	wire probe_termMon;
+	wire probe_cardMon;
 
 	// Bidirs
-	wire isoSio;
+	wire isoSioTerm;
+	wire isoSioCard;
 
 wire COM_statusOut=statusOut;
 wire COM_clk=isoClk;
@@ -97,7 +102,7 @@ wire [31:0] spy_bytesCnt;
 		.tsReceived(tsReceived),
 		.atrIsEarly(atrIsEarly), 
 		.atrIsLate(atrIsLate), 
-		.isoSio(isoSio), 
+		.isoSio(isoSioTerm), 
 		.isoClk(isoClk), 
 		.isoReset(isoReset), 
 		.isoVdd(isoVdd)
@@ -107,7 +112,14 @@ wire [31:0] spy_bytesCnt;
 		.isoReset(isoReset),
 		.isoClk(isoClk),
 		.isoVdd(isoVdd),
-		.isoSio(isoSio)
+		.isoSio(isoSioCard)
+	);
+	
+	Iso7816_directionProbe probe(
+		.isoSioTerm(isoSioTerm),
+		.isoSioCard(isoSioCard),
+		.termMon(probe_termMon),
+		.cardMon(probe_cardMon)
 	);
 
 	Iso7816_3_t0_analyzer spy (
@@ -117,7 +129,9 @@ wire [31:0] spy_bytesCnt;
     .isoReset(isoReset), 
     .isoClk(isoClk), 
     .isoVdd(isoVdd), 
-    .isoSio(isoSio), 
+    .isoSioTerm(probe_termMon), 
+    .isoSioCard(probe_cardMon), 
+	 .useDirectionProbe(1'b1),
     .fiCode(spy_fiCode), 
     .diCode(spy_diCode), 
     .fi(spy_fi), 

@@ -1,22 +1,13 @@
 `timescale 1ns / 1ps
 `default_nettype none
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date:    17:16:40 01/09/2011 
-// Design Name: 
-// Module Name:    Iso7816_3_Master 
-// Project Name: 
-// Target Devices: 
-// Tool versions: 
-// Description: 
+// Author: Sebastien Riou
+// Creation date: 17:16:40 01/09/2011 
 //
-// Dependencies: 
-//
-// Revision: 
-// Revision 0.01 - File Created
-// Additional Comments: 
+// Last change date:	$LastChangedDate$
+// Last changed by:	$LastChangedBy$
+// Last revision:		$LastChangedRevision$
+// Head URL:			$HeadURL$				 
 //
 //////////////////////////////////////////////////////////////////////////////////
 module Iso7816_3_Master(

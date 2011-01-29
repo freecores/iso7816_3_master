@@ -1,14 +1,18 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module Iso7816_3_t0_analyzer(
+module Iso7816_3_t0_analyzer 
+#(parameter DIVIDER_WIDTH = 1)
+(
 	input wire nReset,
 	input wire clk,
 	input wire [DIVIDER_WIDTH-1:0] clkPerCycle,
 	input wire isoReset,
 	input wire isoClk,
 	input wire isoVdd,
-	input wire isoSio,
+	input wire isoSioTerm,
+	input wire isoSioCard,
+	input wire useDirectionProbe,//if 1, isoSioTerm and isoSioCard must be connected to Iso7816_directionProbe outputs
 	output reg [3:0] fiCode,
 	output reg [3:0] diCode,
 	output wire [12:0] fi,
@@ -29,15 +33,16 @@ module Iso7816_3_t0_analyzer(
 	output reg useT15,
 	output reg waitCardTx,
 	output reg waitTermTx,
-	output reg cardTx,
-	output reg termTx,
+	output wire cardTx,
+	output wire termTx,
 	output wire guardTime,
 	output wire overrunError,
 	output wire frameError,
 	output reg [7:0] lastByte,
 	output reg [31:0] bytesCnt
 	);
-parameter DIVIDER_WIDTH = 1;
+
+wire isoSio = isoSioTerm & isoSioCard;
 	
 reg [8:0] tsCnt;//counter to start ATR 400 cycles after reset release
 
@@ -73,7 +78,7 @@ wire [7:0] dataOut = sioHighValue ? rxData : ~rxData;
 wire endOfRx;
 
 wire stopBit2 = useT0;//1 if com use 2 stop bits --> 12 ETU / byte
-
+wire [12:0] clocksPerBit = cyclesPerEtu-1;
 RxCoreSelfContained #(
 		.DIVIDER_WIDTH(DIVIDER_WIDTH),
 		.CLOCK_PER_BIT_WIDTH(4'd13),
@@ -88,7 +93,7 @@ RxCoreSelfContained #(
     .startBit(rxStartBit), 
 	 .stopBit(guardTime),
     .clkPerCycle(clkPerCycle),
-    .clocksPerBit(cyclesPerEtu-1), 
+    .clocksPerBit(clocksPerBit), 
     .stopBit2(stopBit2), 
     .oddParity(oddParity),
     .msbFirst(msbFirst),
@@ -318,13 +323,15 @@ always @(posedge isoClk, negedge nReset) begin
 end
 
 reg [1:0] txDir;
-always @(*) begin: errorSigDirectionBlock
+reg proto_cardTx;
+reg proto_termTx;
+always @(*) begin: protoComDirectionCombiBlock
 	if(guardTime & ~isoSio)
-		{cardTx, termTx}={txDir[0],txDir[1]};
+		{proto_cardTx, proto_termTx}={txDir[0],txDir[1]};
 	else
-		{cardTx, termTx}={txDir[1],txDir[0]};
+		{proto_cardTx, proto_termTx}={txDir[1],txDir[0]};
 end
-always @(posedge isoClk, negedge nReset) begin: comDirectionBlock
+always @(posedge isoClk, negedge nReset) begin: protoComDirectionSeqBlock
 	if(~nReset | ~run) begin
 		txDir<=2'b00;
 	end else begin
@@ -338,6 +345,26 @@ always @(posedge isoClk, negedge nReset) begin: comDirectionBlock
 		end
 	end
 end		
+
+reg phy_cardTx;
+reg phy_termTx;
+always @(negedge isoSio, negedge nReset) begin: phyComDirectionBlock
+	if(~nReset) begin
+		phy_cardTx<=1'b0;
+		phy_termTx<=1'b0;
+	end else begin
+		if(~isoSioTerm) begin
+			phy_cardTx<=1'b0;
+			phy_termTx<=1'b1;
+		end else begin
+			phy_cardTx<=1'b1;
+			phy_termTx<=1'b0;
+		end
+	end
+end
+
+assign cardTx = useDirectionProbe ? phy_cardTx : proto_cardTx;
+assign termTx = useDirectionProbe ? phy_termTx : proto_termTx;
 		
 endmodule
 
