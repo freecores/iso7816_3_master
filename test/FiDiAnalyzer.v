@@ -47,18 +47,18 @@ always @(*) begin:fiBlock
 	case(fiCode)
 		4'b0000: fiStuff = {12'd0372,8'd040};
 		4'b0001: fiStuff = {12'd0372,8'd050};
-		4'b0010: fiStuff = {12'd0372,8'd060};
-		4'b0011: fiStuff = {12'd0372,8'd080};
-		4'b0100: fiStuff = {12'd0372,8'd120};
-		4'b0101: fiStuff = {12'd0372,8'd160};
-		4'b0110: fiStuff = {12'd0372,8'd200};
+		4'b0010: fiStuff = {12'd0558,8'd060};
+		4'b0011: fiStuff = {12'd0744,8'd080};
+		4'b0100: fiStuff = {12'd1116,8'd120};
+		4'b0101: fiStuff = {12'd1488,8'd160};
+		4'b0110: fiStuff = {12'd1860,8'd200};
 		4'b0111: fiStuff = {12'd0000,8'd000};
 		4'b1000: fiStuff = {12'd0000,8'd000};
-		4'b1001: fiStuff = {12'd0372,8'd050};
-		4'b1010: fiStuff = {12'd0372,8'd075};
-		4'b1011: fiStuff = {12'd0372,8'd100};
-		4'b1100: fiStuff = {12'd0372,8'd150};
-		4'b1101: fiStuff = {12'd0372,8'd200};
+		4'b1001: fiStuff = {12'd0512,8'd050};
+		4'b1010: fiStuff = {12'd0768,8'd075};
+		4'b1011: fiStuff = {12'd1024,8'd100};
+		4'b1100: fiStuff = {12'd1536,8'd150};
+		4'b1101: fiStuff = {12'd2048,8'd200};
 		4'b1110: fiStuff = {12'd0000,8'd000};
 		4'b1111: fiStuff = {12'd0000,8'd000};
 	endcase

@@ -52,6 +52,8 @@ task sendWord;
 		sendByte(data[7:0]);
 	end
 endtask
+
+//return when the stop bit of the last byte is starting
 task waitEndOfTx;
   begin
       @(posedge COM_clk)

@@ -161,8 +161,8 @@ always @(posedge isoClk, negedge isoReset) begin
 		
 		if(8'hFF==tpduHeader[CLA_I+:8]) begin
 			//support only PPS8 for the time being
-			if(32'hFF789778==tpduHeader[7+CLA_I:P2_I]) begin
-				sendHexBytes("FF789778");
+			if(32'hFF109778==tpduHeader[7+CLA_I:P2_I]) begin
+				sendHexBytes("FF109778");
 				waitEndOfTx;
 				cyclesPerEtu <= 13'd8-1'b1;
 			end

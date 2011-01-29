@@ -33,4 +33,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  `include "ComRxDriverTasks.v"
  `include "ComTxDriverTasks.v"
 
+task waitEndOfRun;
+  begin
+      @(posedge COM_clk)
+		wait((txRun|rxRun)==0);
+	end
+endtask
 

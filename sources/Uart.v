@@ -58,6 +58,7 @@ module BasicHalfDuplexUart
     output wire rxStartBit,			//rx is started, but we don't know yet if real rx or just a glitch
     output wire txFull,
     output wire isTx,              //1 only when tx is ongoing. Indicates the direction of the com line.
+    output wire endOfTx,           //one cycle pulse: 1 during last cycle of last stop bit of tx
     
 	 input wire serialIn,				//signals to merged into a inout signal according to "isTx"
 	 output wire serialOut,
@@ -75,42 +76,21 @@ module BasicHalfDuplexUart
     input wire nReset
     );
 
-//constant definition for states
-localparam IDLE_STATE = 	3'b000;
-localparam RX_STATE = 	3'b001;
-localparam TX_STATE = 	3'b011;
-
 wire rxSerialIn = isTx ? STOP_BIT1 : serialIn;
-//wire serialOut;
 wire loadDataIn;
-
 wire txStopBits;
-
 assign isTx = txRun & ~txStopBits;
-//let this to top level to avoid inout signal
-//assign serialLine = isTx ? serialOut : 1'bz;
-
 assign loadDataIn = startTx & ~rxStartBit & (~rxRun | endOfRx);
 
-/*//complicated approach... instead we can simply divide the clock at lower levels
-wire useEarlyComClk = |clkPerCycle ? 1'b1:1'b0;
-reg dividedClk;
-wire earlyComClk;//earlier than comClk by 1 cycle of clk (use to make 1 cycle pulse signals)
-always @(posedge clk)begin
-	if(useEarlyComClk)
-		dividedClk <= earlyComClk;
+reg [CLOCK_PER_BIT_WIDTH-1:0] safeClocksPerBit;
+always @(posedge clk, negedge nReset) begin
+	if(~nReset) begin
+		safeClocksPerBit<=clocksPerBit;
+	end else if(endOfRx|endOfTx|~(rxRun|rxStartBit|txRun)) begin
+		safeClocksPerBit<=clocksPerBit;
+	end
 end
-assign comClk=useEarlyComClk ? dividedClk : clk;//clock for communication
-wire endOfRxComClk;//pulse of 1 cycle of comClk
-assign endOfRx = useEarlyComClk ? endOfRxComClk & earlyComClk & ~comClk : endOfRxComClk;//pulse of 1 cycle of clk
-ClkDivider #(.DIVIDER_WIDTH(DIVIDER_WIDTH))
-	clkDivider(
-		.nReset(nReset),
-		.clk(clk),
-		.divider(clkPerCycle),
-		.dividedClk(earlyComClk)
-		);
-*/	
+
 wire stopBit;
 // Instantiate the module
 RxCoreSelfContained #(
@@ -127,7 +107,7 @@ RxCoreSelfContained #(
     .startBit(rxStartBit), 
 	 .stopBit(stopBit),
     .clkPerCycle(clkPerCycle),
-    .clocksPerBit(clocksPerBit), 
+    .clocksPerBit(safeClocksPerBit), 
     .stopBit2(stopBit2), 
     .oddParity(oddParity),
     .msbFirst(msbFirst),
@@ -142,12 +122,13 @@ TxCore #(.DIVIDER_WIDTH(DIVIDER_WIDTH),
 		)
 	txCore (
 	.serialOut(serialOut), 
-	.run(txRun), 
+	.run(txRun),
+	.endOfTx(endOfTx),
 	.full(txFull), 
    .stopBits(txStopBits),
 	.dataIn(txData), 
 	.clkPerCycle(clkPerCycle),
-	.clocksPerBit(clocksPerBit),
+	.clocksPerBit(safeClocksPerBit),
 	.stopBit2(stopBit2),
    .oddParity(oddParity),
    .msbFirst(msbFirst),

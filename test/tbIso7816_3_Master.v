@@ -222,6 +222,9 @@ wire [31:0] spy_bytesCnt;
 	initial begin
 		tbTestSequenceDone=1'b0;
 		receiveAndCheckHexBytes("3B00");
+		sendHexBytes("FF109778");
+		receiveAndCheckHexBytes("FF109778");
+		cyclesPerEtu=8-1;
 		sendHexBytes("000C000001");
 		receiveAndCheckHexBytes("0C");
 		sendHexBytes("55");

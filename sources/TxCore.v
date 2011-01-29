@@ -44,6 +44,7 @@ module TxCore
     output wire comClk,
     output wire serialOut,
     output wire run,
+	 output reg endOfTx,
     output wire full,
     output wire stopBits, //1 during stop bits
     input wire [7:0] dataIn,
@@ -143,6 +144,7 @@ always @(posedge clk, negedge nReset) begin
 	if(~nReset) begin
 		nextState <= #1 IDLE_STATE;
 		bitCounter <= #1 0;
+		endOfTx <= #1 1'b0;
 	end else begin
 		case(nextState)
 			IDLE_STATE: begin
@@ -178,12 +180,12 @@ always @(posedge clk, negedge nReset) begin
 					nextState <= #1 SEND_STOP2_STATE;
 			end
 			SEND_STOP2_STATE: begin
-			/*	if(bitClocksCounter[1:0]==2'b10)
-               nextState <= #1 SEND_STOP2_STATE2;
-			end
-			SEND_STOP2_STATE2: begin*/
-				if(bitClocksCounterMatch)
+				if(bitClocksCounterEarlyMatch)
+					endOfTx <= #1 1'b1;
+				if(bitClocksCounterMatch) begin
                nextState <= #1 IDLE_STATE;
+					endOfTx <= #1 1'b0;
+				end
          end
 			default: nextState <= #1 IDLE_STATE;
 		endcase

@@ -84,7 +84,10 @@ localparam P1_I = 8*2;
 localparam P2_I = 8*1;
 localparam P3_I = 0;
 reg [CLA_I+7:0] tpduHeader;
-
+localparam PPS0_I= CLA_I;
+localparam PPS1_I= INS_I;
+localparam PPS2_I= P1_I;
+localparam PPS3_I= P2_I;
 //wire COM_clk=isoClk;
 //integer COM_errorCnt;
 //wire txPending=1'b0;
@@ -102,10 +105,6 @@ wire sioHighValue = ~useIndirectConvention;
 wire oddParity = 1'b0;
 
 wire [7:0] dataOut = sioHighValue ? rxData : ~rxData;
-
-
-//`include "ComRxDriverTasks.v"
-
 wire endOfRx;
 
 wire stopBit2 = useT0;//1 if com use 2 stop bits --> 12 ETU / byte
@@ -173,6 +172,7 @@ localparam T0_NACK_DATA = 4;
 localparam T0_SW1 = 5;
 localparam T0_SW2 = 6;
 localparam T0_HEADER_PPS = 100;
+localparam T0_PPS_RESPONSE = 101;
 
 integer fsmState;
 
@@ -197,8 +197,13 @@ always @(posedge isoClk, negedge nReset) begin
 		bytesCnt<=bytesCnt+1'b1;
 	end
 end
+reg ppsValidSoFar;
+reg ppsAccepted;
+wire ppsDataMatch = (tpduHeader[(CLA_I-(tempBytesCnt*8))+:8]==dataOut);
 always @(posedge isoClk, negedge nReset) begin
 	if(~nReset) begin
+		ppsValidSoFar<=1'b0;
+		ppsAccepted<=1'b0;
 		fiCode<=4'b0001;
 		diCode<=4'b0001;
 		useT0<=1'b1;
@@ -273,9 +278,59 @@ always @(posedge isoClk, negedge nReset) begin
 						tpduHeader[CLA_I+:8]<=dataOut;
 						tempBytesCnt <= 1;
 						if(8'hFF==dataOut)
-							fsmState <= T0_HEADER_PPS;//TODO
+							fsmState <= T0_HEADER_PPS;
 						else
 							fsmState <= T0_HEADER_TPDU;
+					end
+				end
+				T0_HEADER_PPS: begin
+					if(endOfRx) begin
+						tpduHeader[(CLA_I-(tempBytesCnt*8))+:8]<=dataOut;
+						if(3==tempBytesCnt) begin//support only 4 byte PPS
+							tempBytesCnt <= 8'h0;
+							fsmState <= T0_PPS_RESPONSE;
+							{waitCardTx,waitTermTx}<=2'b10;
+							ppsValidSoFar<=1'b1;
+							ppsAccepted<=1'b0;
+						end else begin
+							tempBytesCnt <= tempBytesCnt+1;
+						end
+					end
+				end
+				T0_PPS_RESPONSE: begin
+					if(3==tempBytesCnt) begin//support only 4 byte PPS
+						if(guardTime) begin
+							if(ppsValidSoFar & ppsDataMatch) begin
+								{fiCode,diCode}<=tpduHeader[PPS2_I+:8];
+							end	
+						end
+					end
+					if(endOfRx) begin
+						ppsValidSoFar<=ppsValidSoFar & ppsDataMatch;
+						if(3==tempBytesCnt) begin//support only 4 byte PPS
+							tempBytesCnt <= 8'h0;
+							fsmState <= T0_HEADER;
+							{waitCardTx,waitTermTx}<=2'b01;
+							case(tpduHeader[(PPS1_I-(tempBytesCnt*8))+:8])
+								8'h11: begin
+									useT0<=1'b0;
+									useT1<=1'b1;
+									useT15<=1'b0;
+								end
+								8'h1F: begin
+									useT0<=1'b0;
+									useT1<=1'b0;
+									useT15<=1'b1;
+								end
+								default: begin
+									useT0<=1'b1;
+									useT1<=1'b0;
+									useT15<=1'b0;
+								end
+							endcase
+						end else begin
+							tempBytesCnt <= tempBytesCnt+1;
+						end
 					end
 				end
 				T0_HEADER_TPDU: begin
