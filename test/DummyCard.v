@@ -1,26 +1,35 @@
-`timescale 1ns / 1ps
+/*
+Author: Sebastien Riou (acapola)
+Creation date: 22:22:43 01/10/2011 
+
+$LastChangedDate$
+$LastChangedBy$
+$LastChangedRevision$
+$HeadURL$				 
+
+This file is under the BSD licence:
+Copyright (c) 2011, Sebastien Riou
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer. 
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution. 
+The names of contributors may not be used to endorse or promote products derived from this software without specific prior written permission. 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 `default_nettype none
-////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer:
-//
-// Create Date:   22:22:43 01/10/2011
-// Design Name:   HalfDuplexUartIf
-// Module Name:   dummyCard.v
-// Project Name:  Uart
-// Target Device:  
-// Tool versions:  
-// Description: 
-//
-// Verilog Test Fixture created by ISE for module: HalfDuplexUartIf
-//
-// Dependencies:
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-////////////////////////////////////////////////////////////////////////////////
 
 module DummyCard(
 	input wire isoReset,
@@ -143,17 +152,33 @@ always @(posedge isoClk, negedge isoReset) begin
 		sendHexBytes("3B00");
 		waitEndOfTx;
 	end else begin
-		//get tpdu
-		for(i=0;i<5;i=i+1)
+		//get CLA
+		receiveByte(tpduHeader[CLA_I+:8]);
+		
+		//get INS~P2 or PPS
+		for(i=1;i<4;i=i+1)
 			receiveByte(tpduHeader[(CLA_I-(i*8))+:8]);
-		//dispatch
-		case(tpduHeader[7+CLA_I:P2_I])
-				32'h000C0000: writeBufferCmd;
-				32'h000A0000: readBufferCmd;
-				default: sendHexBytes("6986");//sendWord(16'h6986);
-		endcase
+		
+		if(8'hFF==tpduHeader[CLA_I+:8]) begin
+			//support only PPS8 for the time being
+			if(32'hFF789778==tpduHeader[7+CLA_I:P2_I]) begin
+				sendHexBytes("FF789778");
+				waitEndOfTx;
+				cyclesPerEtu <= 13'd8-1'b1;
+			end
+		end else begin
+			//tpdu: get P3
+			receiveByte(tpduHeader[P3_I+:8]);
+			//dispatch
+			case(tpduHeader[7+CLA_I:P2_I])
+					32'h000C0000: writeBufferCmd;
+					32'h000A0000: readBufferCmd;
+					default: sendHexBytes("6986");//sendWord(16'h6986);
+			endcase
+		end
 	end
 end
       
 endmodule
+`default_nettype wire
 

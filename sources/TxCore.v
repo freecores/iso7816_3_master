@@ -1,25 +1,46 @@
-`timescale 1ns / 1ps
+/*
+Author: Sebastien Riou (acapola)
+Creation date: 21:16:10 08/29/2010 
+
+$LastChangedDate$
+$LastChangedBy$
+$LastChangedRevision$
+$HeadURL$				 
+
+This file is under the BSD licence:
+Copyright (c) 2011, Sebastien Riou
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer. 
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution. 
+The names of contributors may not be used to endorse or promote products derived from this software without specific prior written permission. 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 `default_nettype none
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: Sebastien Riou
-// 
-// Create Date:    21:16:10 08/29/2010 
-// Design Name: 
-// Module Name:    TxCore 
-// Project Name: 
-// Target Devices: 
-// Tool versions: 
-// Description: 
-//
-// Dependencies: 
-//
-// Revision: 
-// Revision 0.01 - File Created
-// Additional Comments: 
-//
-//////////////////////////////////////////////////////////////////////////////////
-module TxCore(
+`timescale 1ns / 1ps
+
+module TxCore
+#(//parameters to override
+	parameter DIVIDER_WIDTH = 1,
+	parameter CLOCK_PER_BIT_WIDTH = 13,//allow to support default speed of ISO7816
+	//default conventions
+	parameter START_BIT = 1'b0,
+	parameter STOP_BIT1 = 1'b1
+)
+(
     output wire comClk,
     output wire serialOut,
     output wire run,
@@ -35,13 +56,6 @@ module TxCore(
 	 input wire clk,
     input wire nReset
     );
-
-//parameters to override
-parameter DIVIDER_WIDTH = 1;
-parameter CLOCK_PER_BIT_WIDTH = 13;//allow to support default speed of ISO7816
-//default conventions
-parameter START_BIT = 1'b0;
-parameter STOP_BIT1 = 1'b1;
 
 //constant definition for state
 localparam IDLE_STATE = 0;
@@ -178,3 +192,4 @@ always @(posedge clk, negedge nReset) begin
 end
 
 endmodule
+`default_nettype wire
