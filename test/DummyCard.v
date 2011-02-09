@@ -94,7 +94,7 @@ assign isoSio = isTx ? serialOut : 1'bz;
 /*T=0 card model
 
 ATR:
-	3B 00
+	3B/3F 94 97 80 1F 42 BA BE BA BE 
 
 Implemented commands: 
 	write buffer: 
@@ -149,7 +149,10 @@ always @(posedge isoClk, negedge isoReset) begin
 		tsCnt <= tsCnt + 1'b1;
 	end else if(sendAtr) begin
 		sendAtr<=1'b0;
-		sendHexBytes("3B00");
+		//sendHexBytes("3B00");
+		sendHexBytes("3B");
+		//sendHexBytes("3F");
+		sendHexBytes("9497801F42BABEBABE");
 		waitEndOfTx;
 	end else begin
 		//get CLA

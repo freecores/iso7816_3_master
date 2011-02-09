@@ -33,7 +33,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 module Iso7816_3_t0_analyzer 
-#(parameter DIVIDER_WIDTH = 1)
+#(
+	parameter DIVIDER_WIDTH = 1
+)
 (
 	input wire nReset,
 	input wire clk,
@@ -72,6 +74,7 @@ module Iso7816_3_t0_analyzer
 	output reg [7:0] lastByte,
 	output reg [31:0] bytesCnt
 	);
+localparam CLOCK_PER_BIT_WIDTH = 4'd13;
 
 wire isoSio = isoSioTerm & isoSioCard;
 	
@@ -108,10 +111,20 @@ wire [7:0] dataOut = sioHighValue ? rxData : ~rxData;
 wire endOfRx;
 
 wire stopBit2 = useT0;//1 if com use 2 stop bits --> 12 ETU / byte
-wire [12:0] clocksPerBit = cyclesPerEtu-1;
+wire [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit = cyclesPerEtu-1;
+
+reg [CLOCK_PER_BIT_WIDTH-1:0] safeClocksPerBit;
+always @(posedge clk, negedge nReset) begin
+	if(~nReset) begin
+		safeClocksPerBit<=clocksPerBit;
+	end else if(endOfRx|~(rxRun|rxStartBit)) begin
+		safeClocksPerBit<=clocksPerBit;
+	end
+end
+
 RxCoreSelfContained #(
 		.DIVIDER_WIDTH(DIVIDER_WIDTH),
-		.CLOCK_PER_BIT_WIDTH(4'd13),
+		.CLOCK_PER_BIT_WIDTH(CLOCK_PER_BIT_WIDTH),
 		.PRECISE_STOP_BIT(1'b1))
 	rxCore (
     .dataOut(rxData), 
@@ -123,7 +136,7 @@ RxCoreSelfContained #(
     .startBit(rxStartBit), 
 	 .stopBit(guardTime),
     .clkPerCycle(clkPerCycle),
-    .clocksPerBit(clocksPerBit), 
+    .clocksPerBit(safeClocksPerBit), 
     .stopBit2(stopBit2), 
     .oddParity(oddParity),
     .msbFirst(msbFirst),
@@ -241,18 +254,24 @@ always @(posedge isoClk, negedge nReset) begin
 							end
 						end else begin //TA, TB or TC bytes
 							//TODO: get relevant info
-							tempBytesCnt <= tempBytesCnt+1;
+							//check if we just received the last interface byte
+							if((tempBytesCnt+1==nIfBytes) & (1'b0==tdiStruct[7])) begin
+								tempBytesCnt <= 2'h0;
+								fsmState <= (4'b0!=atrK) ? ATR_HISTORICAL : T0_HEADER;
+							end else begin
+								tempBytesCnt <= tempBytesCnt+1;
+							end
 						end
 					end
 				end
 				ATR_HISTORICAL: begin
 					if(endOfRx) begin
-						if(tempBytesCnt==atrK) begin
+						if(tempBytesCnt==(atrK-1)) begin
 							tempBytesCnt <= 8'h0;
 							if(atrHasTck) begin
 								fsmState <= ATR_TCK;
 							end else begin
-								atrCompleted <= ~atrHasTck;
+								atrCompleted <= 1'b1;
 								{waitCardTx,waitTermTx}<=2'b10;
 								fsmState <= T0_HEADER;
 							end

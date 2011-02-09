@@ -197,6 +197,10 @@ wire [31:0] spy_bytesCnt;
 		startActivation = 1'b1;
 		wait(isActivated);
 		wait(tsReceived);
+		if(tsError) begin
+			$display("ERROR: ATR's TS is invalid");
+			tbErrorCnt=tbErrorCnt+1;
+		end
 		if(atrIsEarly) begin
 			$display("ERROR: ATR is early");
 			tbErrorCnt=tbErrorCnt+1;
@@ -219,9 +223,12 @@ wire [31:0] spy_bytesCnt;
 		end
 	end
 	//T=0 tpdu stimuli
+	reg [7:0] byteFromCard;
 	initial begin
 		tbTestSequenceDone=1'b0;
-		receiveAndCheckHexBytes("3B00");
+		//receiveAndCheckHexBytes("3B00");
+		receiveByte(byteFromCard);//3B or 3F, so we don't check (Master and Spy do)
+		receiveAndCheckHexBytes("9497801F42BABEBABE");
 		sendHexBytes("FF109778");
 		receiveAndCheckHexBytes("FF109778");
 		cyclesPerEtu=8-1;
