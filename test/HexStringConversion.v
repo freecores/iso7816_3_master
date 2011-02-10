@@ -29,7 +29,6 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-`default_nettype none
  
 function [7:0] hexString2Byte;
 	input [15:0] byteInHexString;
@@ -37,7 +36,6 @@ function [7:0] hexString2Byte;
 	reg [7:0] hexDigit;
 	reg [4:0] nibble;
 	begin
-		//hexString2Byte=0;
 		for(i=0;i<2;i=i+1) begin
 			nibble=5'b10000;//invalid
 			hexDigit=byteInHexString[i*8+:8];
@@ -56,4 +54,27 @@ function [7:0] hexString2Byte;
 	end
 endfunction
  
-
+task getNextHexByte;
+input [8*3*257:0] bytesString;
+input integer indexIn;
+output reg [7:0] byteOut;
+output integer indexOut;
+reg [15:0] byteInHex;
+begin
+	byteInHex="  ";
+	//$display("bytesString: %x",bytesString);	
+	while((indexIn>=16)&((8'h0==byteInHex[15:8])|(8'h20==byteInHex[15:8]))) begin
+		byteInHex=bytesString[(indexIn-1)-:16];
+		indexIn=indexIn-8;
+		//$display("indexIn: %d",indexIn);		
+	end
+	indexOut=indexIn-8;
+	//$display("indexOut: %d, byteInHex: '%s' (%x)",indexOut, byteInHex, byteInHex);
+	if((16'h0!=byteInHex) & (indexOut>=0) & (8'h20!=byteInHex[7:0])) begin
+		byteOut=hexString2Byte(byteInHex);
+		//$display("byteOut: %x",byteOut);
+	end else begin
+		indexOut=-1;
+	end
+end
+endtask

@@ -95,6 +95,8 @@ assign isoSio = isTx ? serialOut : 1'bz;
 
 ATR:
 	3B/3F 94 97 80 1F 42 BA BE BA BE 
+	3B 9E 96 80 1F C7 80 31 E0 73 FE 21 1B 66 D0 00 28 24 01 00 0D
+
 
 Implemented commands: 
 	write buffer: 
@@ -152,7 +154,9 @@ always @(posedge isoClk, negedge isoReset) begin
 		//sendHexBytes("3B00");
 		sendHexBytes("3B");
 		//sendHexBytes("3F");
-		sendHexBytes("9497801F42BABEBABE");
+		//sendHexBytes("9497801F42BABEBABE");
+		//sendHexBytes("9E 97 80 1F C7 80 31 E0 73 FE 21 1B 66 D0 00 28 24 01 00 0D");
+		sendHexBytes("9E 97 80 1F C7 80 31 E0 73 FE 21 1B 66 D0 00 28 24 01 00 ");
 		waitEndOfTx;
 	end else begin
 		//get CLA

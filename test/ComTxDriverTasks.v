@@ -70,12 +70,11 @@ task sendHexBytes;
 	reg [15:0] byteInHex;
 	reg [7:0] byteToSend;
 begin
-	for(i=16*256;i>=0;i=i-16) begin
-		byteInHex=bytesString[i+:16];
-		if(16'h0!=byteInHex) begin
-			byteToSend=hexString2Byte(byteInHex);
-			sendByte(byteToSend);
-		end
+	i=16*257;
+	getNextHexByte(bytesString, i, byteToSend, i);
+	while(i!=-1) begin
+		sendByte(byteToSend);
+		getNextHexByte(bytesString, i, byteToSend, i);
 	end
 end
 endtask

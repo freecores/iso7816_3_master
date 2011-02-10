@@ -29,7 +29,7 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-`default_nettype none
+
 //wire txRun,txPending, rxRun, rxStartBit, isTx, overrunErrorFlag, frameErrorFlag, bufferFull;
 //assign {txRun, txPending, rxRun, rxStartBit, isTx, overrunErrorFlag, frameErrorFlag, bufferFull} = COM_statusOut;
 
@@ -72,12 +72,11 @@ task receiveAndCheckHexBytes;
 	reg [15:0] byteInHex;
 	reg [7:0] byteToCheck;
 begin
-	for(i=16*256;i>=0;i=i-16) begin
-		byteInHex=bytesString[i+:16];
-		if(16'h0!=byteInHex) begin
-			byteToCheck=hexString2Byte(byteInHex);
-			receiveAndCheckByte(byteToCheck);
-		end
+	i=16*257;
+	getNextHexByte(bytesString, i, byteToCheck, i);
+	while(i!=-1) begin
+		receiveAndCheckByte(byteToCheck);
+		getNextHexByte(bytesString, i, byteToCheck, i);
 	end
 end
 endtask
