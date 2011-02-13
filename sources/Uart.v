@@ -83,11 +83,20 @@ assign isTx = txRun & ~txStopBits;
 assign loadDataIn = startTx & ~rxStartBit & (~rxRun | endOfRx);
 
 reg [CLOCK_PER_BIT_WIDTH-1:0] safeClocksPerBit;
+reg safeStopBit2;
+reg safeOddParity;
+reg safeMsbFirst;
 always @(posedge clk, negedge nReset) begin
 	if(~nReset) begin
 		safeClocksPerBit<=clocksPerBit;
+		safeStopBit2<=stopBit2;
+		safeOddParity<=oddParity;
+		safeMsbFirst<=msbFirst;
 	end else if(endOfRx|endOfTx|~(rxRun|rxStartBit|txRun)) begin
 		safeClocksPerBit<=clocksPerBit;
+		safeStopBit2<=stopBit2;
+		safeOddParity<=oddParity;
+		safeMsbFirst<=msbFirst;
 	end
 end
 
@@ -108,9 +117,9 @@ RxCoreSelfContained #(
 	 .stopBit(stopBit),
     .clkPerCycle(clkPerCycle),
     .clocksPerBit(safeClocksPerBit), 
-    .stopBit2(stopBit2), 
-    .oddParity(oddParity),
-    .msbFirst(msbFirst),
+    .stopBit2(safeStopBit2), 
+    .oddParity(safeOddParity),
+    .msbFirst(safeMsbFirst),
 	 .ackFlags(ackFlags), 
     .serialIn(rxSerialIn), 
     .comClk(comClk), 
@@ -129,9 +138,9 @@ TxCore #(.DIVIDER_WIDTH(DIVIDER_WIDTH),
 	.dataIn(txData), 
 	.clkPerCycle(clkPerCycle),
 	.clocksPerBit(safeClocksPerBit),
-	.stopBit2(stopBit2),
-   .oddParity(oddParity),
-   .msbFirst(msbFirst),
+	.stopBit2(safeStopBit2),
+   .oddParity(safeOddParity),
+   .msbFirst(safeMsbFirst),
 	.loadDataIn(loadDataIn), 
 	.comClk(comClk), 
    .clk(clk), 

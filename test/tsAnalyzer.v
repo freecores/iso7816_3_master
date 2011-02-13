@@ -45,7 +45,8 @@ module TsAnalyzer(
 	output wire tsError,
 	output wire atrIsEarly,//high if TS received before 400 cycles after reset release
 	output wire atrIsLate,//high if TS is still not received after 40000 cycles after reset release
-	output wire useIndirectConvention
+	output wire useIndirectConvention,
+	output reg [7:0] ts
 	);
 
 	
@@ -54,32 +55,35 @@ reg [8:0] tsCnt;//counter to start ATR 400 cycles after reset release
 reg [16:0] resetCnt;
 reg waitTs;
 assign tsReceived = ~waitTs;
-reg [7:0] ts;
 assign atrIsEarly = ~waitTs & (resetCnt<(16'h100+16'd400));
 assign atrIsLate = resetCnt>(16'h100+16'd40000);
-assign useIndirectConvention = ~waitTs & (ts==8'hFC);//FC is 3F written LSB first
+assign useIndirectConvention = ~waitTs & (ts==8'h03);//03 is 3F written LSB first and complemented
 assign tsError = ~waitTs & (ts!=8'h3B) & ~useIndirectConvention;
 
 assign isActivated = isoReset & isoVdd;
-
-always @(posedge isoClk, negedge nReset) begin
-	if(~nReset) begin
+wire fsm_nReset=nReset & isoReset & isoVdd;
+always @(posedge isoClk, negedge fsm_nReset) begin
+	if(~fsm_nReset) begin
 		resetCnt<=16'b0;
 		waitTs<=1'b1;
 	end else if(isActivated) begin
 		if(waitTs) begin
 			if(endOfRx) begin
 				waitTs<=1'b0;
-				ts<=rxData;
+				case(rxData)
+					8'h3B: ts<=rxData;
+					8'h03: ts<=8'h3F;
+					default: ts<=rxData;
+				endcase
 			end
 			resetCnt<=resetCnt+1;
 		end
 	end else begin
-		if(isoVdd & isoReset) begin
+		//if(isoVdd & isoReset) begin
 			resetCnt<=resetCnt + 1;
-		end else begin
-			resetCnt<=16'b0;
-		end
+		//end else begin
+		//	resetCnt<=16'b0;
+		//end
 	end
 end
 		

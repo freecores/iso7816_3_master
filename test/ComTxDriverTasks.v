@@ -64,6 +64,8 @@ endtask
 
 
 //Higher level tasks
+
+
 task sendHexBytes;
 	input [16*257:0] bytesString;
 	integer i;
@@ -75,6 +77,96 @@ begin
 	while(i!=-1) begin
 		sendByte(byteToSend);
 		getNextHexByte(bytesString, i, byteToSend, i);
+	end
+end
+endtask
+
+task sendT0TpduLc;
+	input [8*3*(256+5+1+2):0] bytesString;
+	integer i;
+	reg [15:0] byteInHex;
+	reg [7:0] byteToSend;
+	reg [8*(256+5+1+2):0] cmdBytes;
+	integer nBytes;
+begin
+	hexStringToBytes(bytesString,cmdBytes,nBytes);
+	sendByte(cmdBytes[0*8+:8]);
+	sendByte(cmdBytes[1*8+:8]);
+	sendByte(cmdBytes[2*8+:8]);
+	sendByte(cmdBytes[3*8+:8]);
+	sendByte(cmdBytes[4*8+:8]);
+	if(0!==cmdBytes[4*8+:8]) begin
+		i=5;
+		receiveAndCheckByte(cmdBytes[1*8+:8]);//TODO: handle NACK
+		while(i!=nBytes) begin
+			sendByte(cmdBytes[i*8+:8]);
+			i=i+1;
+		end
+	end
+end
+endtask
+
+task sendT0TpduLeFull;
+	input [8*3*5:0] bytesString;
+	output [8*256:0] leBytes;
+	output integer le;
+	integer i;
+	reg [15:0] byteInHex;
+	reg [7:0] byteToSend;
+	reg [8*(256+5+1+2):0] cmdBytes;
+	integer nBytes;
+begin
+	hexStringToBytes(bytesString,cmdBytes,nBytes);
+	sendByte(cmdBytes[0*8+:8]);
+	sendByte(cmdBytes[1*8+:8]);
+	sendByte(cmdBytes[2*8+:8]);
+	sendByte(cmdBytes[3*8+:8]);
+	sendByte(cmdBytes[4*8+:8]);
+	le = (0===cmdBytes[4*8+:8]) ? 256 : cmdBytes[4*8+:8];
+	if((nBytes!==5) & (le !== nBytes-5)) begin
+		$display("ERROR: le (%d) don't match with nBytes (%d) in command %s",le,nBytes,bytesString);
+		$finish;
+	end
+	receiveByte(cmdBytes[1*8+:8]);
+	for(i=0;i<le;i=i+1) begin
+		receiveByte(leBytes[i*8+:8]);
+	end
+end
+endtask
+
+task sendT0TpduLe;
+	input [8*3*5:0] bytesString;
+	output [8*256:0] leBytes;
+	integer i;
+begin
+	sendT0TpduLeFull(bytesString,leBytes,i);
+end
+endtask
+
+task sendT0TpduLeCheck;
+	input [8*3*5:0] bytesString;
+	input [8*3*256:0] expectedLeBytesString;
+	integer i;
+	reg [15:0] byteInHex;
+	reg [7:0] byteToSend;
+	reg [8*(256+5+1+2):0] cmdBytes;
+	reg [8*256:0] leBytes;
+	reg [8*256:0] expectedLeBytes;
+	integer nBytes;
+	integer expectedLe;
+	integer le;
+begin
+	sendT0TpduLeFull(bytesString,leBytes,le);
+	hexStringToBytes(expectedLeBytesString,expectedLeBytes,expectedLe);
+	if(expectedLe !== le) begin
+		$display("ERROR: expectedLe (%d) don't match with le (%d) in command %s, %s",expectedLe,le,bytesString, expectedLeBytesString);
+		$finish;
+	end
+	for(i=0;i<le;i=i+1) begin
+		if(leBytes[i*8+:8]!==expectedLeBytes[i*8+:8]) begin
+			$display("ERROR: recived %x instead of %x at index %d in command %s, %s",leBytes[i*8+:8],expectedLeBytes[i*8+:8],i,bytesString, expectedLeBytesString);
+			$finish;
+		end
 	end
 end
 endtask

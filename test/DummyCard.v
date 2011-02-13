@@ -46,20 +46,35 @@ module DummyCard(
 	reg nCsStatusOut;
 
 	// Outputs
-	wire [7:0] dataOut;
+	wire [7:0] uart_dataOut;
 	wire [7:0] statusOut;
 	wire serialOut;
 	reg [12:0] cyclesPerEtu;
 
 	wire cardIsoClk;//card use its own generated clock (like true UARTs)
+
+reg useIndirectConventionConfig;//can be changed by commands
+reg useIndirectConvention;
+	
+wire stopBit2=1'b1;//0: 1 stop bit, 1: 2 stop bits 
+wire msbFirst = useIndirectConvention;//if 1, bits order is: startBit, b7, b6, b5...b0, parity
+wire oddParity = 1'b0;//if 1, parity bit is such that data+parity have an odd number of 1
+wire sioHighValue = ~useIndirectConvention;//apply only to data bits
+
+wire [7:0] uart_dataIn = sioHighValue ? dataIn : ~dataIn;
+wire [7:0] dataOut = sioHighValue ? uart_dataOut : ~uart_dataOut;
+	
 	HalfDuplexUartIf uartIf (
 		.nReset(isoReset), 
 		.clk(isoClk), 
 		.clkPerCycle(clkPerCycle), 
-		.dataIn(dataIn), 
+		.dataIn(uart_dataIn), 
 		.nWeDataIn(nWeDataIn), 
 		.clocksPerBit(cyclesPerEtu), 
-		.dataOut(dataOut), 
+		.stopBit2(stopBit2), 
+		.oddParity(oddParity), 
+      .msbFirst(msbFirst),  
+	   .dataOut(uart_dataOut), 
 		.nCsDataOut(nCsDataOut), 
 		.statusOut(statusOut), 
 		.nCsStatusOut(nCsStatusOut), 
@@ -106,6 +121,9 @@ Implemented commands:
 		tpdu: 00 0A 00 00 LE
 		response: data
 		sw:   90 00
+	toggle communication convention (take effect at next reset):
+		tpdu 00 FC 00 00 00
+		sw:	90 00
 	any other:
 		sw:   69 86
 */
@@ -138,6 +156,19 @@ begin
 end
 endtask
 
+task toggleConventionCmd;
+integer i;
+begin
+	useIndirectConventionConfig=~useIndirectConventionConfig;
+	sendHexBytes("9000");//sendWord(16'h9000);
+end
+endtask
+
+//stuff which can be changed by command and affect ATR
+always @(posedge isoVdd) begin
+	useIndirectConventionConfig<=1'b1;
+end
+
 integer i;
 always @(posedge isoClk, negedge isoReset) begin
 	if(~isoReset) begin
@@ -147,13 +178,16 @@ always @(posedge isoClk, negedge isoReset) begin
 		tsCnt<=9'b0;
 		sendAtr<=1'b1;
 		cyclesPerEtu <= 13'd372-1'b1;
+		useIndirectConvention<=useIndirectConventionConfig;
 	end else if(tsCnt!=9'd400) begin
 		tsCnt <= tsCnt + 1'b1;
 	end else if(sendAtr) begin
 		sendAtr<=1'b0;
 		//sendHexBytes("3B00");
-		sendHexBytes("3B");
-		//sendHexBytes("3F");
+		if(useIndirectConvention)
+			sendHexBytes("3F");
+		else
+			sendHexBytes("3B");
 		//sendHexBytes("9497801F42BABEBABE");
 		//sendHexBytes("9E 97 80 1F C7 80 31 E0 73 FE 21 1B 66 D0 00 28 24 01 00 0D");
 		sendHexBytes("9E 97 80 1F C7 80 31 E0 73 FE 21 1B 66 D0 00 28 24 01 00 ");
@@ -180,7 +214,8 @@ always @(posedge isoClk, negedge isoReset) begin
 			case(tpduHeader[7+CLA_I:P2_I])
 					32'h000C0000: writeBufferCmd;
 					32'h000A0000: readBufferCmd;
-					default: sendHexBytes("6986");//sendWord(16'h6986);
+					32'h00FC0000: toggleConventionCmd;
+					default: sendHexBytes("6986");
 			endcase
 		end
 	end

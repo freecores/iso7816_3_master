@@ -71,6 +71,7 @@ module Iso7816_3_t0_analyzer
 	output wire guardTime,
 	output wire overrunError,
 	output wire frameError,
+	output reg comOnGoing,
 	output reg [7:0] lastByte,
 	output reg [31:0] bytesCnt
 	);
@@ -113,14 +114,20 @@ wire endOfRx;
 wire stopBit2 = useT0;//1 if com use 2 stop bits --> 12 ETU / byte
 wire [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit = cyclesPerEtu-1;
 
+wire rxCore_nReset = nReset & isoVdd & isoReset;
 reg [CLOCK_PER_BIT_WIDTH-1:0] safeClocksPerBit;
-always @(posedge clk, negedge nReset) begin
-	if(~nReset) begin
+
+always @(*) comOnGoing = rxRun|rxStartBit;
+
+always @(posedge clk, negedge rxCore_nReset) begin
+	if(~rxCore_nReset) begin
 		safeClocksPerBit<=clocksPerBit;
-	end else if(endOfRx|~(rxRun|rxStartBit)) begin
+	end else if(endOfRx|~comOnGoing) begin
 		safeClocksPerBit<=clocksPerBit;
 	end
 end
+
+wire [7:0] ts;
 
 RxCoreSelfContained #(
 		.DIVIDER_WIDTH(DIVIDER_WIDTH),
@@ -144,7 +151,7 @@ RxCoreSelfContained #(
     .serialIn(isoSio), 
     .comClk(isoClk), 
     .clk(clk), 
-    .nReset(nReset)
+    .nReset(rxCore_nReset)
     );
 
 TsAnalyzer tsAnalyzer(
@@ -160,7 +167,8 @@ TsAnalyzer tsAnalyzer(
 	.tsError(tsError),
 	.atrIsEarly(atrIsEarly),
 	.atrIsLate(atrIsLate),
-	.useIndirectConvention(useIndirectConvention)
+	.useIndirectConvention(useIndirectConvention),
+	.ts(ts)
 	);
 
 FiDiAnalyzer fiDiAnalyzer(
@@ -205,16 +213,18 @@ always @(posedge isoClk, negedge nReset) begin
 	end else if(ackFlags) begin
 		ackFlags<=1'b0;
 	end else if(frameErrorFlag|bufferFull) begin
-		lastByte<=dataOut;
+		if(tsReceived) lastByte<=dataOut;//ts is read by tsAnalyzer
 		ackFlags<=1'b1;
 		bytesCnt<=bytesCnt+1'b1;
-	end
+	end else if((32'b1==bytesCnt) & tsReceived) begin
+		lastByte<=ts;
+	end 
 end
 reg ppsValidSoFar;
 reg ppsAccepted;
 wire ppsDataMatch = (tpduHeader[(CLA_I-(tempBytesCnt*8))+:8]==dataOut);
-always @(posedge isoClk, negedge nReset) begin
-	if(~nReset) begin
+always @(posedge isoClk, negedge rxCore_nReset) begin
+	if(~rxCore_nReset) begin
 		ppsValidSoFar<=1'b0;
 		ppsAccepted<=1'b0;
 		fiCode<=4'b0001;
@@ -436,8 +446,8 @@ always @(*) begin: protoComDirectionCombiBlock
 	else
 		{proto_cardTx, proto_termTx}={txDir[1],txDir[0]};
 end
-always @(posedge isoClk, negedge nReset) begin: protoComDirectionSeqBlock
-	if(~nReset | ~run) begin
+always @(posedge isoClk, negedge rxCore_nReset) begin: protoComDirectionSeqBlock
+	if(~rxCore_nReset | ~run) begin
 		txDir<=2'b00;
 	end else begin
 		if(~guardTime) begin //{waitCardTx, waitTermTx} is updated during stop bits so we hold current value here
@@ -453,8 +463,8 @@ end
 
 reg phy_cardTx;
 reg phy_termTx;
-always @(negedge isoSio, negedge nReset) begin: phyComDirectionBlock
-	if(~nReset) begin
+always @(negedge isoSio, negedge rxCore_nReset) begin: phyComDirectionBlock
+	if(~rxCore_nReset) begin
 		phy_cardTx<=1'b0;
 		phy_termTx<=1'b0;
 	end else begin

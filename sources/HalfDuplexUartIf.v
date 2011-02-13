@@ -43,7 +43,10 @@ module HalfDuplexUartIf
 	 input wire [7:0] dataIn,
     input wire nWeDataIn,
     input wire [CLOCK_PER_BIT_WIDTH-1:0] clocksPerBit,
-    output wire [7:0] dataOut,
+    input wire stopBit2,//0: 1 stop bit, 1: 2 stop bits
+	 input wire oddParity, //if 1, parity bit is such that data+parity have an odd number of 1
+    input wire msbFirst,  //if 1, bits order is: startBit, b7, b6, b5...b0, parity
+	 output wire [7:0] dataOut,
     input wire nCsDataOut,
     output wire [7:0] statusOut,
     input wire nCsStatusOut,
@@ -57,10 +60,6 @@ module HalfDuplexUartIf
 
 	// Inputs
 	wire [7:0] txData;
-	//wire [12:0] clocksPerBit;
-	wire stopBit2=1;
-	wire oddParity=0; //if 1, parity bit is such that data+parity have an odd number of 1
-   wire msbFirst=0;  //if 1, bits will be send in the order startBit, b7, b6, b5...b0, parity
 	reg txPending;
 	wire ackFlags;
 
@@ -81,8 +80,7 @@ module HalfDuplexUartIf
    reg [1:0] flagsReg;
    
    assign txData = dataReg;
-   //assign clocksPerBit = 7;
-
+   
    assign dataOut=dataReg;
    assign statusOut[7:0]={txRun, txPending, rxRun, rxStartBit, isTx, flagsReg, bufferFull};
 

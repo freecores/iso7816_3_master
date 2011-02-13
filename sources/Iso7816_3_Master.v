@@ -39,7 +39,7 @@ module Iso7816_3_Master(
     input wire [7:0] dataIn,
     input wire nWeDataIn,
 	 input wire [12:0] cyclesPerEtu,
-    output wire [7:0] dataOut,
+    output reg [7:0] dataOut,
     input wire nCsDataOut,
     output wire [7:0] statusOut,
     input wire nCsStatusOut,
@@ -64,6 +64,16 @@ assign isoSio = isTx ? serialOut : 1'bz;
 pullup(isoSio);
 wire comClk;
 
+wire stopBit2=1'b1;//0: 1 stop bit, 1: 2 stop bits 
+wire msbFirst = useIndirectConvention;//if 1, bits order is: startBit, b7, b6, b5...b0, parity
+wire oddParity = 1'b0;//if 1, parity bit is such that data+parity have an odd number of 1
+wire sioHighValue = ~useIndirectConvention;//apply only to data bits
+
+wire [7:0] uart_dataOut;
+wire [7:0] uart_dataIn = sioHighValue ? dataIn : ~dataIn;
+always @(*) dataOut = sioHighValue ? uart_dataOut : ~uart_dataOut;
+
+
 	HalfDuplexUartIf #(
 		.DIVIDER_WIDTH(1'b1),
 		.CLOCK_PER_BIT_WIDTH(4'd13)
@@ -72,10 +82,13 @@ wire comClk;
 		.nReset(nReset), 
 		.clk(clk),
 		.clkPerCycle(1'b0),
-		.dataIn(dataIn), 
+		.dataIn(uart_dataIn), 
 		.nWeDataIn(nWeDataIn), 
 		.clocksPerBit(cyclesPerEtu), 
-		.dataOut(dataOut), 
+		.stopBit2(stopBit2), 
+		.oddParity(oddParity), 
+      .msbFirst(msbFirst),  
+	   .dataOut(uart_dataOut), 
 		.nCsDataOut(nCsDataOut), 
 		.statusOut(statusOut), 
 		.nCsStatusOut(nCsStatusOut), 
@@ -107,7 +120,11 @@ always @(posedge comClk, negedge nReset) begin
 		if(waitTs) begin
 			if(statusOut[0]) begin
 				waitTs<=1'b0;
-				ts<=dataOut;
+				case(dataOut)
+					8'h3B: ts<=dataOut;
+					8'h03: ts<=8'h3F;
+					default: ts<=dataOut;
+				endcase
 			end
 			resetCnt<=resetCnt+1;
 		end

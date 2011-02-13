@@ -53,9 +53,9 @@ function [7:0] hexString2Byte;
 		end
 	end
 endfunction
- 
+
 task getNextHexByte;
-input [8*3*257:0] bytesString;
+input [8*3*(256+5+1+2):0] bytesString;
 input integer indexIn;
 output reg [7:0] byteOut;
 output integer indexOut;
@@ -75,6 +75,26 @@ begin
 		//$display("byteOut: %x",byteOut);
 	end else begin
 		indexOut=-1;
+	end
+end
+endtask
+
+task hexStringToBytes;
+input [8*3*(256+5+1+2):0] bytesString;
+output reg [8*(256+5+1+2):0] bytesOut;
+output integer nBytes;
+integer i;
+reg [7:0] newByte;
+begin
+	nBytes=0;
+	i=8*3*(256+5+1+2);
+	//$display("bytesString: %x",bytesString);
+	getNextHexByte(bytesString, i, newByte, i);
+	while(i!=-1) begin
+		//$display("i: %d, nBytes: %d, newByte: %x",i, nBytes, newByte);
+		bytesOut[nBytes*8+:8]=newByte;
+		nBytes=nBytes+1;
+		getNextHexByte(bytesString, i, newByte, i);
 	end
 end
 endtask
