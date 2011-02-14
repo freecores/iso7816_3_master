@@ -32,7 +32,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `default_nettype none
 `timescale 1ns / 1ps
 
-module RxCore(
+module RxCore
+#(//parameters to override
+parameter CLOCK_PER_BIT_WIDTH = 13,	//allow to support default speed of ISO7816
+parameter PRECISE_STOP_BIT = 0, //if 1, stopBit signal goes high exactly at start of stop bit instead of middle of parity bit
+//default conventions (nothing to do with iso7816's convention, this is configured dynamically by the inputs)
+parameter START_BIT = 1'b0,
+parameter STOP_BIT1 = 1'b1,
+parameter STOP_BIT2 = 1'b1
+)
+(
    output reg [7:0] dataOut,
    output reg overrunErrorFlag,	//new data has been received before dataOut was read
    output reg dataOutReadyFlag,	//new data available
@@ -58,15 +67,6 @@ module RxCore(
 	input wire bitClocksCounterMatch,
 	input wire [CLOCK_PER_BIT_WIDTH-1:0] bitClocksCounter
     );
-
-//parameters to override
-parameter CLOCK_PER_BIT_WIDTH = 13;	//allow to support default speed of ISO7816
-parameter PRECISE_STOP_BIT = 0; //if 1, stopBit signal goes high exactly at start of stop bit instead of middle of parity bit
-
-//default conventions
-parameter START_BIT = 1'b0;
-parameter STOP_BIT1 = 1'b1;
-parameter STOP_BIT2 = 1'b1;
 
 //constant definition for states
 localparam IDLE_STATE = 	3'b000;
