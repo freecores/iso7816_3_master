@@ -166,7 +166,7 @@ endtask
 
 //stuff which can be changed by command and affect ATR
 always @(posedge isoVdd) begin
-	useIndirectConventionConfig<=1'b1;
+	useIndirectConventionConfig<=1'b0;
 end
 
 integer i;

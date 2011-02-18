@@ -223,6 +223,7 @@ end
 reg ppsValidSoFar;
 reg ppsAccepted;
 wire ppsDataMatch = (tpduHeader[(CLA_I-(tempBytesCnt*8))+:8]==dataOut);
+wire [3:0] earlyAtrK = (4'h0==tdiCnt) ? dataOut[3:0] : atrK;
 always @(posedge isoClk, negedge rxCore_nReset) begin
 	if(~rxCore_nReset) begin
 		ppsValidSoFar<=1'b0;
@@ -236,7 +237,7 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 		fsmState<=ATR_TDI;
 		atrHasTck<=1'b0;
 		tempBytesCnt<=8'h0;
-		tdiStruct<=12'h0;
+		tdiStruct<={4'h0,8'h80};//0x80 as default TDi to consider T0 as a TDi
 		atrCompleted<=1'b0;
 		atrK<=4'b0;
 	end else if(isActivated) begin
@@ -247,36 +248,33 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 			case(fsmState)
 				ATR_TDI: begin
 					if(endOfRx) begin
-						if(tempBytesCnt==nIfBytes) begin //TDi bytes
-							tempBytesCnt <= 2'h0;
-							tdiStruct <= {tdiCnt+1,dataOut};
+						if(tempBytesCnt+1==nIfBytes) begin //TDi bytes
 							if(4'h0==tdiCnt) begin//this is T0
 								atrK <= dataOut[3:0];
-								fsmState <= (4'b0!=dataOut[7:4]) ? ATR_TDI : 
-												(4'b0!=dataOut[3:0]) ? ATR_HISTORICAL : T0_HEADER;
-							end else begin//TDi, i from 1 to 15
-								fsmState <= (4'b0!=dataOut[7:4]) ? ATR_TDI : 
-												(4'b0!=atrK) ? ATR_HISTORICAL : T0_HEADER;
 							end
+							tempBytesCnt <= 2'h0;
+							tdiStruct <= {tdiCnt+1,dataOut};
 							if(12'h0=={dataOut,atrK}) begin
 								atrCompleted <= 1'b1;
 								{waitCardTx,waitTermTx}<=2'b01;
 							end
+							if((1'b0==tdiStruct[7]) |//we just received the last interface byte
+								(4'b0==dataOut[7:4])) begin //or new TDi indicate no further interface bytes
+								fsmState <= (4'b0!=earlyAtrK) ? ATR_HISTORICAL :
+												atrHasTck ? ATR_TCK : T0_HEADER;
+							end else begin//TDi, i from 1 to 15
+								fsmState <= ATR_TDI;
+							end
+							
 						end else begin //TA, TB or TC bytes
 							//TODO: get relevant info
-							//check if we just received the last interface byte
-							if((tempBytesCnt+1==nIfBytes) & (1'b0==tdiStruct[7])) begin
-								tempBytesCnt <= 2'h0;
-								fsmState <= (4'b0!=atrK) ? ATR_HISTORICAL : T0_HEADER;
-							end else begin
-								tempBytesCnt <= tempBytesCnt+1;
-							end
+							tempBytesCnt <= tempBytesCnt+1;
 						end
 					end
 				end
 				ATR_HISTORICAL: begin
 					if(endOfRx) begin
-						if(tempBytesCnt==(atrK-1)) begin
+						if(tempBytesCnt+1==atrK) begin
 							tempBytesCnt <= 8'h0;
 							if(atrHasTck) begin
 								fsmState <= ATR_TCK;

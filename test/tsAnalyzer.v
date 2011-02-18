@@ -57,8 +57,8 @@ reg waitTs;
 assign tsReceived = ~waitTs;
 assign atrIsEarly = ~waitTs & (resetCnt<(16'h100+16'd400));
 assign atrIsLate = resetCnt>(16'h100+16'd40000);
-assign useIndirectConvention = ~waitTs & (ts==8'h03);//03 is 3F written LSB first and complemented
-assign tsError = ~waitTs & (ts!=8'h3B) & ~useIndirectConvention;
+assign useIndirectConvention = ~waitTs & (ts==8'h3F);
+assign tsError = ~waitTs & (ts!=8'h3B) & (ts!=8'h3F);
 
 assign isActivated = isoReset & isoVdd;
 wire fsm_nReset=nReset & isoReset & isoVdd;
@@ -72,7 +72,7 @@ always @(posedge isoClk, negedge fsm_nReset) begin
 				waitTs<=1'b0;
 				case(rxData)
 					8'h3B: ts<=rxData;
-					8'h03: ts<=8'h3F;
+					8'h03: ts<=8'h3F;//03 is 3F written LSB first and complemented
 					default: ts<=rxData;
 				endcase
 			end

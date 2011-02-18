@@ -107,7 +107,7 @@ reg [7:0] ts;
 assign atrIsEarly = ~waitTs & (resetCnt<(16'h100+16'd400));
 assign atrIsLate = resetCnt>(16'h100+16'd40000);
 assign useIndirectConvention = ~waitTs & (ts==8'h3F);
-assign tsError = ~waitTs & (ts!=8'h3B) & ~useIndirectConvention;
+assign tsError = ~waitTs & (ts!=8'h3B) & (ts!=8'h3F);
 always @(posedge comClk, negedge nReset) begin
 	if(~nReset) begin
 		isoClkEn <= 1'b0;
@@ -122,7 +122,7 @@ always @(posedge comClk, negedge nReset) begin
 				waitTs<=1'b0;
 				case(dataOut)
 					8'h3B: ts<=dataOut;
-					8'h03: ts<=8'h3F;
+					8'h03: ts<=8'h3F;//03 is 3F written LSB first and complemented
 					default: ts<=dataOut;
 				endcase
 			end
