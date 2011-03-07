@@ -41,7 +41,7 @@ module FiDiAnalyzer(
 	output wire [7:0] fMax				//in 0.1MHz units
 	);
 
-reg [13+8:0] fiStuff;
+reg [13+8-1:0] fiStuff;
 assign {fi,fMax} = fiStuff;
 always @(*) begin:fiBlock
 	case(fiCode)

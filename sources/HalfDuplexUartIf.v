@@ -119,7 +119,7 @@ always @(posedge clk, negedge nReset) begin
       end
    end
 end   
-
+wire endOfTx;
 	BasicHalfDuplexUart #(
 		.DIVIDER_WIDTH(DIVIDER_WIDTH),
 		.CLOCK_PER_BIT_WIDTH(CLOCK_PER_BIT_WIDTH)
@@ -131,6 +131,7 @@ end
 		.frameErrorFlag(frameErrorFlag), 
 		.txRun(txRun), 
 		.endOfRx(endOfRx),
+		.endOfTx(endOfTx),
       .rxRun(rxRun), 
 		.rxStartBit(rxStartBit), 
 		.txFull(txFull), 

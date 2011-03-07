@@ -111,7 +111,7 @@ always @(nextState, clocksPerBit, run, bitClocksCounterMatch) begin
 		STOP2_STATE: begin
          //make the rx operation is one cycle shorter, 
          //since we detect the start bit at least one cycle later it starts.
-			bitClocksCounterCompare = clocksPerBit-1;
+			bitClocksCounterCompare = clocksPerBit-1'b1;
 			bitClocksCounterInc = 1;
 			bitClocksCounterClear = 0;
 		end

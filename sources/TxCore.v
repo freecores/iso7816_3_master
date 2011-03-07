@@ -116,14 +116,14 @@ assign internalOut = bitSel[nextState];
 
 assign bitClocksCounterInitVal=0;
 
-always @(nextState) begin
+always @(*) begin
    case(nextState)
       START_STATE:    
-         assign bitClocksCounterCompare = clocksPerBit-1;
+         bitClocksCounterCompare = clocksPerBit-1'b1;
       SEND_STOP2_STATE:    
-         assign bitClocksCounterCompare = clocksPerBit-1;
+         bitClocksCounterCompare = clocksPerBit-1'b1;
       default: 
-         assign bitClocksCounterCompare = clocksPerBit;
+         bitClocksCounterCompare = clocksPerBit;
    endcase
 end
 

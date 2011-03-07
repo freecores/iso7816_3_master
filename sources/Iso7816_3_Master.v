@@ -50,18 +50,22 @@ module Iso7816_3_Master(
 	 output wire atrIsEarly,//high if TS received before 400 cycles after reset release
 	 output wire atrIsLate,//high if TS is still not received after 40000 cycles after reset release
 	 //ISO7816 signals
-    inout wire isoSio,
+    //inout wire isoSio,//not synthesisable on FPGA :-S
+	 output wire isTx,
+	 input wire isoSioIn,
+	 output wire isoSioOut,
 	 output wire isoClk,
 	 output reg isoReset,
 	 output reg isoVdd
     );
 
-wire txRun,txPending, rxRun, rxStartBit, isTx, overrunErrorFlag, frameErrorFlag, bufferFull;
+wire txRun,txPending, rxRun, rxStartBit, overrunErrorFlag, frameErrorFlag, bufferFull;
 assign {txRun, txPending, rxRun, rxStartBit, isTx, overrunErrorFlag, frameErrorFlag, bufferFull} = statusOut;
 
-wire serialOut;
-assign isoSio = isTx ? serialOut : 1'bz;
-pullup(isoSio);
+//wire serialOut;
+//not synthesisable on FPGA :-S
+//assign isoSio = isTx ? serialOut : 1'bz;
+//pullup(isoSio);
 wire comClk;
 
 wire stopBit2=1'b1;//0: 1 stop bit, 1: 2 stop bits 
@@ -92,8 +96,8 @@ always @(*) dataOut = sioHighValue ? uart_dataOut : ~uart_dataOut;
 		.nCsDataOut(nCsDataOut), 
 		.statusOut(statusOut), 
 		.nCsStatusOut(nCsStatusOut), 
-		.serialIn(isoSio),
-		.serialOut(serialOut),
+		.serialIn(isoSioIn),
+		.serialOut(isoSioOut),
 		.comClk(comClk)
 	);
 	
@@ -126,7 +130,7 @@ always @(posedge comClk, negedge nReset) begin
 					default: ts<=dataOut;
 				endcase
 			end
-			resetCnt<=resetCnt+1;
+			resetCnt<=resetCnt+1'b1;
 		end
 		if(startDeactivation) begin
 			isoVdd <= 1'b0;
@@ -144,7 +148,7 @@ always @(posedge comClk, negedge nReset) begin
 				isActivated <=1'b1;
 				isoReset <=1'b1;
 			end else
-				resetCnt<=resetCnt + 1;
+				resetCnt<=resetCnt + 1'b1;
 		end else begin
 			resetCnt<=16'b0;
 		end

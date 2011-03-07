@@ -98,7 +98,7 @@ localparam PPS3_I= P2_I;
 //wire txRun=1'b0;
 
 wire rxRun, rxStartBit, overrunErrorFlag, frameErrorFlag, bufferFull;
-assign overrunErrorFlag = overrunError;
+//assign overrunErrorFlag = overrunError;
 assign frameErrorFlag = frameError;	 
 
 wire [7:0] rxData;
@@ -121,7 +121,7 @@ always @(*) comOnGoing = rxRun|rxStartBit;
 
 always @(posedge clk, negedge rxCore_nReset) begin
 	if(~rxCore_nReset) begin
-		safeClocksPerBit<=clocksPerBit;
+		safeClocksPerBit<={CLOCK_PER_BIT_WIDTH{1'b0}};
 	end else if(endOfRx|~comOnGoing) begin
 		safeClocksPerBit<=clocksPerBit;
 	end
@@ -221,13 +221,13 @@ always @(posedge isoClk, negedge nReset) begin
 	end 
 end
 reg ppsValidSoFar;
-reg ppsAccepted;
+//reg ppsAccepted;
 wire ppsDataMatch = (tpduHeader[(CLA_I-(tempBytesCnt*8))+:8]==dataOut);
 wire [3:0] earlyAtrK = (4'h0==tdiCnt) ? dataOut[3:0] : atrK;
 always @(posedge isoClk, negedge rxCore_nReset) begin
 	if(~rxCore_nReset) begin
 		ppsValidSoFar<=1'b0;
-		ppsAccepted<=1'b0;
+		//ppsAccepted<=1'b0;
 		fiCode<=4'b0001;
 		diCode<=4'b0001;
 		useT0<=1'b1;
@@ -253,7 +253,7 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 								atrK <= dataOut[3:0];
 							end
 							tempBytesCnt <= 2'h0;
-							tdiStruct <= {tdiCnt+1,dataOut};
+							tdiStruct <= {tdiCnt+1'b1,dataOut};
 							if(12'h0=={dataOut,atrK}) begin
 								atrCompleted <= 1'b1;
 								{waitCardTx,waitTermTx}<=2'b01;
@@ -268,7 +268,7 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 							
 						end else begin //TA, TB or TC bytes
 							//TODO: get relevant info
-							tempBytesCnt <= tempBytesCnt+1;
+							tempBytesCnt <= tempBytesCnt+1'b1;
 						end
 					end
 				end
@@ -284,7 +284,7 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 								fsmState <= T0_HEADER;
 							end
 						end else begin
-							tempBytesCnt <= tempBytesCnt+1;
+							tempBytesCnt <= tempBytesCnt+1'b1;
 						end
 					end
 				end
@@ -318,9 +318,9 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 							fsmState <= T0_PPS_RESPONSE;
 							{waitCardTx,waitTermTx}<=2'b10;
 							ppsValidSoFar<=1'b1;
-							ppsAccepted<=1'b0;
+							//ppsAccepted<=1'b0;
 						end else begin
-							tempBytesCnt <= tempBytesCnt+1;
+							tempBytesCnt <= tempBytesCnt+1'b1;
 						end
 					end
 				end
@@ -356,7 +356,7 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 								end
 							endcase
 						end else begin
-							tempBytesCnt <= tempBytesCnt+1;
+							tempBytesCnt <= tempBytesCnt+1'b1;
 						end
 					end
 				end
@@ -368,7 +368,7 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 							fsmState <= T0_PB;
 							{waitCardTx,waitTermTx}<=2'b10;
 						end else begin
-							tempBytesCnt <= tempBytesCnt+1;
+							tempBytesCnt <= tempBytesCnt+1'b1;
 						end
 					end
 				end
@@ -403,7 +403,7 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 					if(endOfRx) begin
 						fsmState <= T0_PB;
 						{waitCardTx,waitTermTx}<=2'b10;
-						tempBytesCnt <= tempBytesCnt+1;
+						tempBytesCnt <= tempBytesCnt+1'b1;
 					end
 				end
 				T0_SW1: begin
@@ -426,7 +426,7 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 							fsmState <= T0_SW1;
 							{waitCardTx,waitTermTx}<=2'b10;
 						end else begin
-							tempBytesCnt <= tempBytesCnt+1;
+							tempBytesCnt <= tempBytesCnt+1'b1;
 						end
 					end
 				end

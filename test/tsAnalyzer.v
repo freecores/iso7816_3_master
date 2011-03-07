@@ -76,11 +76,11 @@ always @(posedge isoClk, negedge fsm_nReset) begin
 					default: ts<=rxData;
 				endcase
 			end
-			resetCnt<=resetCnt+1;
+			resetCnt<=resetCnt+1'b1;
 		end
 	end else begin
 		//if(isoVdd & isoReset) begin
-			resetCnt<=resetCnt + 1;
+			resetCnt<=resetCnt + 1'b1;
 		//end else begin
 		//	resetCnt<=16'b0;
 		//end

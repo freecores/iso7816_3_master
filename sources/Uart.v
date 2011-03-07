@@ -88,10 +88,14 @@ reg safeOddParity;
 reg safeMsbFirst;
 always @(posedge clk, negedge nReset) begin
 	if(~nReset) begin
-		safeClocksPerBit<=clocksPerBit;
+		/*safeClocksPerBit<=clocksPerBit;
 		safeStopBit2<=stopBit2;
 		safeOddParity<=oddParity;
-		safeMsbFirst<=msbFirst;
+		safeMsbFirst<=msbFirst;*/
+		safeClocksPerBit<={CLOCK_PER_BIT_WIDTH{1'b0}};
+		safeStopBit2<=1'b0;
+		safeOddParity<=1'b0;
+		safeMsbFirst<=1'b0;
 	end else if(endOfRx|endOfTx|~(rxRun|rxStartBit|txRun)) begin
 		safeClocksPerBit<=clocksPerBit;
 		safeStopBit2<=stopBit2;

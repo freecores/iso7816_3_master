@@ -67,6 +67,13 @@ parameter CLK_PERIOD = 10;//should be %2
 	wire isoSioTerm;
 	wire isoSioCard;
 
+wire isTxTerm;
+reg isoSioInTerm;
+wire isoSioOutTerm;
+assign isoSioTerm = isTx ? isoSioOutTerm : 1'bz;
+pullup(isoSioTerm);
+always @(*) isoSioInTerm = isoSioTerm;
+
 wire COM_statusOut=statusOut;
 wire COM_clk=isoClk;
 integer COM_errorCnt;
@@ -113,7 +120,10 @@ wire [31:0] spy_bytesCnt;
 		.tsReceived(tsReceived),
 		.atrIsEarly(atrIsEarly), 
 		.atrIsLate(atrIsLate), 
-		.isoSio(isoSioTerm), 
+		//.isoSio(isoSioTerm), 
+		.isTx(isTxTerm),
+		.isoSioIn(isoSioInTerm),
+		.isoSioOut(isoSioOutTerm),
 		.isoClk(isoClk), 
 		.isoReset(isoReset), 
 		.isoVdd(isoVdd)
