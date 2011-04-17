@@ -98,7 +98,7 @@ localparam PPS3_I= P2_I;
 //wire txRun=1'b0;
 
 wire rxRun, rxStartBit, overrunErrorFlag, frameErrorFlag, bufferFull;
-//assign overrunErrorFlag = overrunError;
+assign overrunErrorFlag = overrunError;
 assign frameErrorFlag = frameError;	 
 
 wire [7:0] rxData;
@@ -254,14 +254,23 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 							end
 							tempBytesCnt <= 2'h0;
 							tdiStruct <= {tdiCnt+1'b1,dataOut};
-							if(12'h0=={dataOut,atrK}) begin
-								atrCompleted <= 1'b1;
-								{waitCardTx,waitTermTx}<=2'b01;
-							end
+							//if(12'h0=={dataOut,atrK}) begin
+							//	atrCompleted <= 1'b1;
+							//	{waitCardTx,waitTermTx}<=2'b01;
+							//end
 							if((1'b0==tdiStruct[7]) |//we just received the last interface byte
 								(4'b0==dataOut[7:4])) begin //or new TDi indicate no further interface bytes
-								fsmState <= (4'b0!=earlyAtrK) ? ATR_HISTORICAL :
-												atrHasTck ? ATR_TCK : T0_HEADER;
+								//fsmState <= (4'b0!=earlyAtrK) ? ATR_HISTORICAL :
+								//				atrHasTck ? ATR_TCK : T0_HEADER;
+								if(4'b0!=earlyAtrK) begin
+									fsmState <= ATR_HISTORICAL;
+								end else if(atrHasTck) begin
+									fsmState <= ATR_TCK;
+								end else begin
+									fsmState <= T0_HEADER;
+									atrCompleted <= 1'b1;
+									{waitCardTx,waitTermTx}<=2'b01;
+								end
 							end else begin//TDi, i from 1 to 15
 								fsmState <= ATR_TDI;
 							end

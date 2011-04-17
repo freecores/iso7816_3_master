@@ -91,7 +91,7 @@ assign ackFlags=~txPending & ~txRun & rxFlagsSet & ((bufferFull & ~nCsDataOut)| 
 always @(posedge clk, negedge nReset) begin
    if(~nReset) begin
       bufferFull <= 1'b0;
-      flagsReg <= 1'b0;
+      flagsReg <= 2'b00;
       txPending <= 1'b0;
    end else begin
       if(ackFlags) begin

@@ -242,8 +242,9 @@ wire [31:0] spy_bytesCnt;
 		//receiveAndCheckHexBytes("3B00");
 		receiveByte(bytesFromCard[7:0]);//3B or 3F, so we don't check (Master and Spy do)
 		//receiveAndCheckHexBytes("9497801F42BABEBABE");
+		receiveAndCheckHexBytes("90974020");
 		//TODO: handle TCK-->receiveAndCheckHexBytes("9E 97 80 1F C7 80 31 E0 73 FE 21 1B 66 D0 00 28 24 01 00 0D");
-		receiveAndCheckHexBytes("9E 97 80 1F C7 80 31 E0 73 FE 21 1B 66 D0 00 28 24 01 00");
+		//receiveAndCheckHexBytes("9E 97 80 1F C7 80 31 E0 73 FE 21 1B 66 D0 00 28 24 01 00");
 		sendHexBytes("FF109778");
 		receiveAndCheckHexBytes("FF109778");
 		cyclesPerEtu=8-1;
