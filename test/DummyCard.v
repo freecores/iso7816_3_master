@@ -189,7 +189,7 @@ always @(posedge isoClk, negedge isoReset) begin
 			sendHexBytes("3F");
 		else
 			sendHexBytes("3B");
-			sendHexBytes("90974020");
+		sendHexBytes("90974020");
 		//sendHexBytes("9497801F42BABEBABE");
 		//sendHexBytes("9E 97 80 1F C7 80 31 E0 73 FE 21 1B 66 D0 00 28 24 01 00 0D");
 		//sendHexBytes("9E 97 80 1F C7 80 31 E0 73 FE 21 1B 66 D0 00 28 24 01 00 ");

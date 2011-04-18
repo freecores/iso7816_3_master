@@ -254,14 +254,9 @@ always @(posedge isoClk, negedge rxCore_nReset) begin
 							end
 							tempBytesCnt <= 2'h0;
 							tdiStruct <= {tdiCnt+1'b1,dataOut};
-							//if(12'h0=={dataOut,atrK}) begin
-							//	atrCompleted <= 1'b1;
-							//	{waitCardTx,waitTermTx}<=2'b01;
-							//end
 							if((1'b0==tdiStruct[7]) |//we just received the last interface byte
 								(4'b0==dataOut[7:4])) begin //or new TDi indicate no further interface bytes
-								//fsmState <= (4'b0!=earlyAtrK) ? ATR_HISTORICAL :
-								//				atrHasTck ? ATR_TCK : T0_HEADER;
+								
 								if(4'b0!=earlyAtrK) begin
 									fsmState <= ATR_HISTORICAL;
 								end else if(atrHasTck) begin

@@ -120,7 +120,6 @@ wire [31:0] spy_bytesCnt;
 		.tsReceived(tsReceived),
 		.atrIsEarly(atrIsEarly), 
 		.atrIsLate(atrIsLate), 
-		//.isoSio(isoSioTerm), 
 		.isTx(isTxTerm),
 		.isoSioIn(isoSioInTerm),
 		.isoSioOut(isoSioOutTerm),
@@ -235,7 +234,6 @@ wire [31:0] spy_bytesCnt;
 		end
 	end
 	//T=0 tpdu stimuli
-	//reg [7:0] byteFromCard;
 	reg [8*256:0] bytesFromCard;
 	initial begin
 		tbTestSequenceDone=1'b0;
